@@ -1,113 +1,102 @@
-Sistema de Gestión de Biblioteca CRA - Proyecto Sophia
-Este proyecto es un Sistema de Gestión de Biblioteca completo, desarrollado con el stack MERN (MongoDB, Express, React, Node.js). Está diseñado para administrar los préstamos de libros y recursos del Centro de Recursos para el Aprendizaje (CRA) del Colegio Inmaculada de Lourdes.
+# 🎓 Proyecto de Título: Biblioteca Escolar CRA - MERN
 
-✨ Características Principales:
-Autenticación por Roles: Sistema de usuarios con roles (Administrador, Profesor, Alumno) y permisos específicos para cada uno, utilizando JSON Web Tokens (JWT) para la gestión de sesiones.
+Este proyecto es parte de la titulación en Ingeniería en Informática.  
+Sistema de gestión para bibliotecas escolares CRA, basado en el stack MERN.
 
-Gestión de Catálogo: Funcionalidades CRUD (Crear, Leer, Actualizar, Eliminar) para libros, ejemplares y recursos CRA.
+---
 
-Ciclo de Préstamos: Lógica de negocio para solicitar, devolver y renovar préstamos, aplicando sanciones por atrasos.
+## 📑 Índice
 
-Interfaz Moderna: Frontend desarrollado en React con Tailwind CSS, incluyendo un modo oscuro para una mejor experiencia de usuario.
+- [🌐 Tecnologías Utilizadas](#-tecnologías-utilizadas)
+- [🚀 Instrucciones para ejecutar el proyecto](#-instrucciones-para-ejecutar-el-proyecto)
+  - [🔧 Backend](#-backend)
+  - [💻 Frontend](#-frontend)
+- [🧩 Funcionalidades Principales](#-funcionalidades-principales)
+- [📁 Estructura del Proyecto](#-estructura-del-proyecto)
+- [💡 Notas](#-notas)
+- [👨‍💻 Autor](#-autor)
 
-🚀 Tecnologías Utilizadas
-Backend
-Node.js: Entorno de ejecución para JavaScript.
+---
 
-Express: Framework para construir la API REST.
+## 🌐 Tecnologías Utilizadas
 
-MongoDB: Base de datos NoSQL para almacenar toda la información.
+- **Frontend**: React + Vite + Axios + React Router DOM  
+- **Backend**: Node.js + Express + MongoDB (Mongoose)  
+- **Control de versiones**: Git + GitHub
 
-Mongoose: ODM para modelar los datos de la aplicación y conectarse a MongoDB.
+---
 
-JSON Web Token (JWT): Para la autenticación y protección de rutas.
+## 🚀 Instrucciones para ejecutar el proyecto
 
-bcrypt.js: Para el hasheo seguro de contraseñas.
+### 🔧 Backend
 
-Frontend
-React: Librería para construir la interfaz de usuario.
+#### Instalación
 
-Tailwind CSS: Framework de CSS para un diseño rápido y moderno.
-
-Axios: Cliente HTTP para realizar peticiones al backend.
-
-jwt-decode: Para decodificar los tokens en el lado del cliente.
-
-Herramientas de Desarrollo
-Yarn: Gestor de paquetes.
-
-Git y GitHub: Para el control de versiones y respaldo del código.
-
-🛠️ Guía de Instalación y Ejecución
-Sigue estos pasos para poner en marcha el proyecto en un entorno local.
-
-Prerrequisitos
-Tener instalado Node.js (versión 16 o superior).
-
-Tener instalado Yarn.
-
-Tener instalado Git.
-
-Tener acceso a una base de datos de MongoDB (se recomienda MongoDB Atlas para obtener una URL de conexión).
-
-1. Clonar el Repositorio
-git clone https://github.com/Aldariz94/Proyect_Sophia.git
-cd Proyect_Sophia
-
-2. Configurar el Backend
-Navega a la carpeta del backend:
-
-cd backend   
-
-Instala las dependencias :
-
+```bash
+cd backend
 yarn install
+Configuración
+Crear un archivo .env en backend/ con:
 
-Crea el archivo de entorno:
-
-Crea un archivo llamado .env en la raíz de la carpeta backend.
-
-Añade las siguientes variables, reemplazando los valores:
-
-PORT=5001
-MONGODB_URI=tu_cadena_de_conexion_a_mongodb
-JWT_SECRET=un_secreto_muy_largo_y_dificil_de_adivinar
-
-Inicia el servidor del backend:
-
+env
+Copy
+Edit
+PORT=5000
+MONGO_URI=mongodb://
+JWT_SECRET=tu_clave_secreta
+Ejecución
+bash
+Copy
+Edit
 yarn start
-
-El servidor debería estar corriendo en http://localhost:5001.
-
-3. Configurar el Frontend
-Abre una nueva terminal.
-
-Navega a la carpeta del frontend:
-
-cd frontend
-
-Instala las dependencias:
-
+💻 Frontend
+Instalación
+bash
+Copy
+Edit
+cd ../frontend
 yarn install
+Configuración
+Crear un archivo .env en frontend/ con:
 
-Inicia la aplicación de React:
+env
+Copy
+Edit
+VITE_BASE_URL=http://localhost:5000/api
+Ejecución
+bash
+Copy
+Edit
+yarn dev
+🧩 Funcionalidades Principales
+🔐 Login de usuario
 
-yarn start
+📚 Visualización y creación de libros con clasificación Dewey
 
-La aplicación se abrirá automáticamente en tu navegador en http://localhost:3000.
+📦 Gestión de recursos de la biblioteca (En Proceso)
 
-📜 Scripts Disponibles
-En el directorio del proyecto, puedes ejecutar:
+👥 Listado y eliminación de usuarios
 
-En la carpeta backend/
-yarn start: Inicia el servidor del backend.
+🔄 Gestión de préstamos (En Proceso)
 
-En la carpeta frontend/
-yarn start: Inicia la aplicación de React en modo de desarrollo.
+👤 Visualización del perfil según el rol
 
-yarn build: Compila la aplicación para producción.
+📁 Estructura del Proyecto
+bash
+Copy
+Edit
+biblioteca/
+├── backend/        # Servidor Express y rutas API
+├── frontend/       # Aplicación cliente en React
+├── .gitignore
+├── README.md
+💡 Notas
+El proyecto fue desarrollado usando yarn para mantener consistencia entre frontend y backend.
 
+Se ignoraron los archivos .env, node_modules, y dist para mantener limpio el repositorio.
 
-## Proyecto Sophia
+Se recomienda usar MongoDB local para pruebas y Postman para validar rutas del backend.
 
-Última modificación: 2025-07-28
+👨‍💻 Autor
+Daniel Carreño
+Este proyecto es parte del trabajo de título 2025.
