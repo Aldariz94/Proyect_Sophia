@@ -5,7 +5,8 @@ Sistema de gestión para bibliotecas escolares CRA, basado en el stack MERN.
 
 ---
 
-## 📑 Índice
+<details>
+<summary>📑 Índice</summary>
 
 - [🌐 Tecnologías Utilizadas](#-tecnologías-utilizadas)
 - [🚀 Instrucciones para ejecutar el proyecto](#-instrucciones-para-ejecutar-el-proyecto)
@@ -15,6 +16,8 @@ Sistema de gestión para bibliotecas escolares CRA, basado en el stack MERN.
 - [📁 Estructura del Proyecto](#-estructura-del-proyecto)
 - [💡 Notas](#-notas)
 - [👨‍💻 Autor](#-autor)
+
+</details>
 
 ---
 
@@ -35,68 +38,82 @@ Sistema de gestión para bibliotecas escolares CRA, basado en el stack MERN.
 ```bash
 cd backend
 yarn install
-Configuración
-Crear un archivo .env en backend/ con:
+```
 
-env
-Copy
-Edit
+#### Configuración
+
+Crear un archivo `.env` en `backend/` con:
+
+```env
 PORT=5000
 MONGO_URI=mongodb://
 JWT_SECRET=tu_clave_secreta
-Ejecución
-bash
-Copy
-Edit
+```
+
+#### Ejecución
+
+```bash
 yarn start
-💻 Frontend
-Instalación
-bash
-Copy
-Edit
+```
+
+---
+
+### 💻 Frontend
+
+#### Instalación
+
+```bash
 cd ../frontend
 yarn install
-Configuración
-Crear un archivo .env en frontend/ con:
+```
 
-env
-Copy
-Edit
+#### Configuración
+
+Crear un archivo `.env` en `frontend/` con:
+
+```env
 VITE_BASE_URL=http://localhost:5000/api
-Ejecución
-bash
-Copy
-Edit
+```
+
+#### Ejecución
+
+```bash
 yarn dev
-🧩 Funcionalidades Principales
-🔐 Login de usuario
+```
 
-📚 Visualización y creación de libros con clasificación Dewey
+---
 
-📦 Gestión de recursos de la biblioteca (En Proceso)
+## 🧩 Funcionalidades Principales
 
-👥 Listado y eliminación de usuarios
+- 🔐 Login de usuario funcional  
+- 👀 Visualización de datos desde la base de datos (frontend conectado al backend)  
+- 🌙 Modo oscuro implementado en la interfaz  
+- 🧩 Backend completo: rutas, controladores y conexión a MongoDB operativos  
+- 📝 Documentación inicial en README
 
-🔄 Gestión de préstamos (En Proceso)
+---
 
-👤 Visualización del perfil según el rol
+## 📁 Estructura del Proyecto
 
-📁 Estructura del Proyecto
-bash
-Copy
-Edit
+```bash
 biblioteca/
 ├── backend/        # Servidor Express y rutas API
 ├── frontend/       # Aplicación cliente en React
 ├── .gitignore
 ├── README.md
-💡 Notas
-El proyecto fue desarrollado usando yarn para mantener consistencia entre frontend y backend.
+```
 
-Se ignoraron los archivos .env, node_modules, y dist para mantener limpio el repositorio.
+---
 
-Se recomienda usar MongoDB local para pruebas y Postman para validar rutas del backend.
+## 💡 Notas
 
-👨‍💻 Autor
-Daniel Carreño
-Este proyecto es parte del trabajo de título 2025.
+- El proyecto fue desarrollado usando `yarn` para mantener consistencia entre frontend y backend.
+- Se ignoraron los archivos `.env`, `node_modules`, y `dist` para mantener limpio el repositorio.
+- Se recomienda usar MongoDB local para pruebas y Postman para validar rutas del backend.
+
+---
+
+## 👨‍💻 Autor
+
+**Daniel Carreño**  
+*Este proyecto es parte del trabajo de título 2025.*
