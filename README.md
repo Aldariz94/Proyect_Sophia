@@ -75,7 +75,7 @@ yarn start
 ```bash
 cd frontend
 yarn install
-yarn dev
+yarn start
 ```
 
 ---
