@@ -44,7 +44,7 @@ const BookDetails = ({ book }) => {
                 <DetailRow label="Ubicación en Estantería" value={book.ubicacionEstanteria} />
                 <DetailRow label="Descriptores" value={(book.descriptores || []).join(', ')} />
             </dl>
-            <h4 className="mt-6 mb-2 font-bold dark:text-white">Ejemplares Individuales</h4>
+            <h4 className="mt-6 mb-2 font-bold dark:text-white">Ejemplares</h4>
             <div className="max-h-48 overflow-y-auto">
                 {exemplars.map(ex => (
                     <div key={ex._id} className="flex items-center justify-between py-2 border-b dark:border-gray-700">

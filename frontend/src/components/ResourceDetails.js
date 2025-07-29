@@ -34,7 +34,7 @@ const ResourceDetails = ({ resource }) => {
                 <DetailRow label="Ubicación" value={resource.ubicacion} />
                 <DetailRow label="Descripción" value={resource.descripcion} />
             </dl>
-            <h4 className="mt-6 mb-2 font-bold dark:text-white">Instancias Individuales</h4>
+            <h4 className="mt-6 mb-2 font-bold dark:text-white">Unidades</h4>
             <div className="max-h-48 overflow-y-auto">
                 {instances.map(inst => (
                     <div key={inst._id} className="flex items-center justify-between py-2 border-b dark:border-gray-700">

@@ -97,3 +97,45 @@ exports.deleteUser = async (req, res) => {
         res.status(500).send('Error del servidor');
     }
 };
+
+
+// --- NUEVAS FUNCIONES ---
+
+// @route   GET api/users/sanctioned
+// @desc    Obtener todos los usuarios con sanciones activas
+// @access  Private (Admin)
+exports.getSanctionedUsers = async (req, res) => {
+    try {
+        const sanctionedUsers = await User.find({
+            sancionHasta: { $gt: new Date() } // Busca usuarios cuya fecha de sanción es mayor que la fecha actual
+        }).select('-hashedPassword');
+        res.json(sanctionedUsers);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};
+
+// @route   PUT api/users/:id/remove-sanction
+// @desc    Perdonar/eliminar la sanción de un usuario
+// @access  Private (Admin)
+exports.removeSanction = async (req, res) => {
+    try {
+        let user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'Usuario no encontrado.' });
+        }
+
+        user = await User.findByIdAndUpdate(
+            req.params.id,
+            { $set: { sancionHasta: null } }, // Establece la fecha de sanción a null
+            { new: true }
+        ).select('-hashedPassword');
+
+        res.json({ msg: 'Sanción eliminada exitosamente.', user });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};

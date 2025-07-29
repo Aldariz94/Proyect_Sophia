@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { useTheme } from '../context/ThemeContext'; // Importar hook del tema
+import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = ({ onNavigate, currentPage }) => {
   const { logout } = useAuth();
@@ -12,14 +12,12 @@ const Sidebar = ({ onNavigate, currentPage }) => {
     { key: 'libros', label: 'Gestión de Libros' },
     { key: 'recursos', label: 'Gestión de Recursos' },
     { key: 'prestamos', label: 'Préstamos' },
+    { key: 'sanciones', label: 'Sanciones' }, // NUEVO ENLACE
   ];
 
   return (
     <div className="flex flex-col w-64 h-screen px-4 py-8 bg-white border-r dark:bg-gray-800 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-center text-gray-800 dark:text-white">Sophia</h2>
-      <div className="relative mt-6">
-        {/* Puede ir un campo de búsqueda aquí en el futuro */}
-      </div>
       <nav className="flex-grow mt-6">
         {navItems.map((item) => (
           <a
