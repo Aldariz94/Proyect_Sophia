@@ -1,11 +1,6 @@
-/*
- * ----------------------------------------------------------------
- * Contexto para gestionar la autenticación en toda la app.
- * ----------------------------------------------------------------
- */
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
-import { jwtDecode } from 'jwt-decode'; // Necesitarás instalar jwt-decode: yarn add jwt-decode
+import { jwtDecode } from 'jwt-decode';
 
 export const AuthContext = createContext(null);
 
@@ -13,24 +8,31 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Comprobar si hay un token al cargar la app
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decodedUser = jwtDecode(token);
-        // Opcional: verificar si el token ha expirado
-        if (decodedUser.exp * 1000 > Date.now()) {
-          setUser({ rol: decodedUser.user.rol, id: decodedUser.user.id });
-        } else {
-          localStorage.removeItem('token');
-        }
-      } catch (error) {
-        console.error("Error decodificando el token:", error);
-        localStorage.removeItem('token');
+  const setupUser = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+          try {
+              const decoded = jwtDecode(token);
+              if (decoded.exp * 1000 > Date.now()) {
+                  // Token válido, ahora obtenemos los datos completos del usuario
+                  api.defaults.headers.common['x-auth-token'] = token;
+                  const res = await api.get('/users/me');
+                  setUser(res.data);
+              } else {
+                  localStorage.removeItem('token');
+                  setUser(null);
+              }
+          } catch (error) {
+              console.error("Error al configurar el usuario:", error);
+              localStorage.removeItem('token');
+              setUser(null);
+          }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+  };
+
+  useEffect(() => {
+    setupUser();
   }, []);
 
   const login = async (correo, password) => {
@@ -38,8 +40,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { correo, password });
       const { token } = response.data;
       localStorage.setItem('token', token);
-      const decodedUser = jwtDecode(token);
-      setUser({ rol: decodedUser.user.rol, id: decodedUser.user.id });
+      await setupUser(); // Usamos la misma función para configurar el usuario después del login
       return true;
     } catch (error) {
       console.error('Error en el inicio de sesión:', error.response?.data?.msg || 'Error de red');
@@ -49,11 +50,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    delete api.defaults.headers.common['x-auth-token'];
     setUser(null);
   };
 
   if (loading) {
-    return <div>Cargando...</div>; // O un spinner de carga
+    return (
+        <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900">
+            <div className="text-xl text-gray-800 dark:text-gray-200">Cargando...</div>
+        </div>
+    );
   }
 
   return (
@@ -62,4 +68,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-

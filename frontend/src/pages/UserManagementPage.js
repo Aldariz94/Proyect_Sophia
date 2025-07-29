@@ -2,16 +2,16 @@ import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import UserForm from '../components/UserForm';
-import UserDetails from '../components/UserDetails'; // NUEVO
+import UserDetails from '../components/UserDetails';
 
 const UserManagementPage = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-    const [isViewModalOpen, setIsViewModalOpen] = useState(false); // NUEVO
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
-    const [viewingUser, setViewingUser] = useState(null); // NUEVO
+    const [viewingUser, setViewingUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     const fetchUsers = async () => {
@@ -50,7 +50,7 @@ const UserManagementPage = () => {
         setIsFormModalOpen(true);
     };
     
-    const handleOpenViewModal = (user) => { // NUEVO
+    const handleOpenViewModal = (user) => {
         setViewingUser(user);
         setIsViewModalOpen(true);
     };
@@ -118,6 +118,7 @@ const UserManagementPage = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">RUT</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Correo</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Rol</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Curso</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
                         </tr>
                     </thead>
@@ -128,6 +129,7 @@ const UserManagementPage = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rut}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.correo}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rol}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rol === 'alumno' ? user.curso : 'N/A'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     <button onClick={() => handleOpenViewModal(user)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
                                     <button onClick={() => handleOpenEditModal(user)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>

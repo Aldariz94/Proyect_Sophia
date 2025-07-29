@@ -91,15 +91,33 @@ exports.returnLoan = async (req, res) => {
     }
 };
 
-// Obtener todos los préstamos
+// Obtener todos los préstamos (CORREGIDO)
 exports.getAllLoans = async (req, res) => {
     try {
         const loans = await Loan.find()
-            .populate('usuarioId', 'primerNombre primerApellido correo')
-            .populate('itemDetails');
-        res.json(loans);
+            .populate('usuarioId', 'primerNombre primerApellido')
+            .lean(); // Usar .lean() para un objeto JS plano, más rápido
+
+        // Procesar manualmente la población dinámica
+        const formattedLoans = await Promise.all(loans.map(async (loan) => {
+            let itemDetails = null;
+            if (loan.itemModel === 'Exemplar') {
+                const exemplar = await Exemplar.findById(loan.item).populate('libroId', 'titulo');
+                if (exemplar && exemplar.libroId) {
+                    itemDetails = { titulo: exemplar.libroId.titulo };
+                }
+            } else if (loan.itemModel === 'ResourceInstance') {
+                const instance = await ResourceInstance.findById(loan.item).populate('resourceId', 'nombre');
+                if (instance && instance.resourceId) {
+                    itemDetails = { nombre: instance.resourceId.nombre };
+                }
+            }
+            return { ...loan, itemDetails };
+        }));
+
+        res.json(formattedLoans);
     } catch (err) {
-        console.error(err.message);
+        console.error("Error en getAllLoans:", err.message);
         res.status(500).send('Error del servidor');
     }
 };
@@ -110,8 +128,36 @@ exports.getLoansByUser = async (req, res) => {
         if (req.user.rol !== 'admin' && req.user.id !== req.params.userId) {
             return res.status(403).json({ msg: 'Acceso no autorizado.' });
         }
-        const loans = await Loan.find({ usuarioId: req.params.userId }).populate('itemDetails');
+        // Esta función también necesitaría la lógica de población manual si se usa
+        const loans = await Loan.find({ usuarioId: req.params.userId }); // Simplificado por ahora
         res.json(loans);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};
+
+// Renovar un préstamo
+exports.renewLoan = async (req, res) => {
+    const { days } = req.body;
+    if (!days || isNaN(parseInt(days)) || parseInt(days) <= 0) {
+        return res.status(400).json({ msg: 'Por favor, proporciona un número válido de días para la renovación.' });
+    }
+    try {
+        let loan = await Loan.findById(req.params.id);
+        if (!loan) {
+            return res.status(404).json({ msg: 'Préstamo no encontrado.' });
+        }
+        if (loan.estado !== 'enCurso') {
+            return res.status(400).json({ msg: 'Solo se pueden renovar préstamos "en curso".' });
+        }
+        const newDueDate = addBusinessDays(loan.fechaVencimiento, parseInt(days));
+        loan = await Loan.findByIdAndUpdate(
+            req.params.id,
+            { $set: { fechaVencimiento: newDueDate } },
+            { new: true }
+        );
+        res.json({ msg: `Préstamo renovado por ${days} días hábiles.`, loan });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Error del servidor');

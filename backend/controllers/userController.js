@@ -139,3 +139,22 @@ exports.removeSanction = async (req, res) => {
         res.status(500).send('Error del servidor');
     }
 };
+
+
+
+// @route   GET api/users/me
+// @desc    Obtener los datos del usuario con la sesión activa
+// @access  Private
+exports.getMe = async (req, res) => {
+    try {
+        // req.user.id es añadido por el middleware de autenticación
+        const user = await User.findById(req.user.id).select('-hashedPassword');
+        if (!user) {
+            return res.status(404).json({ msg: 'Usuario no encontrado.' });
+        }
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};
