@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Reservation = require('../models/Reservation');
 const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
@@ -23,6 +24,15 @@ exports.createReservation = async (req, res) => {
     const { usuarioId, itemId, itemModel } = req.body;
     // Si un admin envía un usuarioId, se usa ese. Si no, se usa el del usuario logueado.
     const finalUserId = (req.user.rol === 'admin' && usuarioId) ? usuarioId : req.user.id;
+
+        // ==================================================
+    // =====> AÑADE ESTA VALIDACIÓN AQUÍ <=====
+    // ==================================================
+    if (!mongoose.Types.ObjectId.isValid(finalUserId) || !mongoose.Types.ObjectId.isValid(itemId)) {
+        return res.status(400).json({ msg: 'ID de usuario o de ítem no válido.' });
+    }
+    // ==================================================
+
 
     try {
         const user = await User.findById(finalUserId);
