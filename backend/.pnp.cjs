@@ -33,6 +33,7 @@ const RAW_RUNTIME_STATE =
           ["cors", "npm:2.8.5"],\
           ["dotenv", "npm:17.2.1"],\
           ["express", "npm:5.1.0"],\
+          ["express-rate-limit", "virtual:f5126a6c59718fab632a5fe9c89dad727d14c0854924da0278c36945a50e100550614ee30506e48e5221c7c36dc5ebab4a104a63756e8b71f6e37453259fec8c#npm:8.0.1"],\
           ["jsonwebtoken", "npm:9.0.2"],\
           ["mongoose", "npm:8.16.5"]\
         ],\
@@ -88,6 +89,7 @@ const RAW_RUNTIME_STATE =
           ["cors", "npm:2.8.5"],\
           ["dotenv", "npm:17.2.1"],\
           ["express", "npm:5.1.0"],\
+          ["express-rate-limit", "virtual:f5126a6c59718fab632a5fe9c89dad727d14c0854924da0278c36945a50e100550614ee30506e48e5221c7c36dc5ebab4a104a63756e8b71f6e37453259fec8c#npm:8.0.1"],\
           ["jsonwebtoken", "npm:9.0.2"],\
           ["mongoose", "npm:8.16.5"]\
         ],\
@@ -381,6 +383,29 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["express-rate-limit", [\
+      ["npm:8.0.1", {\
+        "packageLocation": "../../../C:/Users/Danie/AppData/Local/Yarn/Berry/cache/express-rate-limit-npm-8.0.1-3e86e61ca7-10c0.zip/node_modules/express-rate-limit/",\
+        "packageDependencies": [\
+          ["express-rate-limit", "npm:8.0.1"]\
+        ],\
+        "linkType": "SOFT"\
+      }],\
+      ["virtual:f5126a6c59718fab632a5fe9c89dad727d14c0854924da0278c36945a50e100550614ee30506e48e5221c7c36dc5ebab4a104a63756e8b71f6e37453259fec8c#npm:8.0.1", {\
+        "packageLocation": "./.yarn/__virtual__/express-rate-limit-virtual-a4f3be7037/4/C:/Users/Danie/AppData/Local/Yarn/Berry/cache/express-rate-limit-npm-8.0.1-3e86e61ca7-10c0.zip/node_modules/express-rate-limit/",\
+        "packageDependencies": [\
+          ["@types/express", null],\
+          ["express", "npm:5.1.0"],\
+          ["express-rate-limit", "virtual:f5126a6c59718fab632a5fe9c89dad727d14c0854924da0278c36945a50e100550614ee30506e48e5221c7c36dc5ebab4a104a63756e8b71f6e37453259fec8c#npm:8.0.1"],\
+          ["ip-address", "npm:10.0.1"]\
+        ],\
+        "packagePeers": [\
+          "@types/express",\
+          "express"\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["finalhandler", [\
       ["npm:2.1.0", {\
         "packageLocation": "../../../C:/Users/Danie/AppData/Local/Yarn/Berry/cache/finalhandler-npm-2.1.0-395f86ed5d-10c0.zip/node_modules/finalhandler/",\
@@ -510,6 +535,15 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../C:/Users/Danie/AppData/Local/Yarn/Berry/cache/inherits-npm-2.0.4-c66b3957a0-10c0.zip/node_modules/inherits/",\
         "packageDependencies": [\
           ["inherits", "npm:2.0.4"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["ip-address", [\
+      ["npm:10.0.1", {\
+        "packageLocation": "../../../C:/Users/Danie/AppData/Local/Yarn/Berry/cache/ip-address-npm-10.0.1-862be6199a-10c0.zip/node_modules/ip-address/",\
+        "packageDependencies": [\
+          ["ip-address", "npm:10.0.1"]\
         ],\
         "linkType": "HARD"\
       }]\
