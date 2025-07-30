@@ -8,6 +8,7 @@ import SanctionsPage from './SanctionsPage';
 import ReservationsPage from './ReservationsPage';
 import ReportsPage from './ReportsPage'; 
 import DashboardPage from './DashboardPage';
+import InventoryManagementPage from './InventoryManagementPage';
 
 const DashboardLayout = () => {
     const [currentPage, setCurrentPage] = useState('dashboard');
@@ -26,7 +27,9 @@ const DashboardLayout = () => {
                 return <ReservationsPage />;
             case 'sanciones':
                 return <SanctionsPage />;
-            case 'reportes': // NUEVO CASO
+            case 'inventario': 
+                return <InventoryManagementPage />;
+            case 'reportes': 
                 return <ReportsPage />;
             case 'dashboard':
             default:

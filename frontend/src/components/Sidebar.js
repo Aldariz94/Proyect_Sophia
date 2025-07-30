@@ -14,7 +14,8 @@ const Sidebar = ({ onNavigate, currentPage }) => {
     { key: 'prestamos', label: 'Préstamos' },
     { key: 'reservas', label: 'Reservas' },
     { key: 'sanciones', label: 'Atrasos y Sanciones' },
-    { key: 'reportes', label: 'Reportes' }, // NUEVO ENLACE
+    { key: 'inventario', label: 'Mantenimiento Inventario' },
+    { key: 'reportes', label: 'Reportes' }, 
   ];
 
   return (

@@ -1,17 +1,23 @@
+// frontend/src/pages/LoanManagementPage.js
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
 import CreateLoanForm from '../components/CreateLoanForm';
-import RenewLoanForm from '../components/RenewLoanForm'; // NUEVA IMPORTACIÓN
+import RenewLoanForm from '../components/RenewLoanForm';
+import ReturnLoanForm from '../components/ReturnLoanForm'; // <-- Importación nueva
 
 const LoanManagementPage = () => {
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isRenewModalOpen, setIsRenewModalOpen] = useState(false); // NUEVO ESTADO
-    const [renewingLoanId, setRenewingLoanId] = useState(null); // NUEVO ESTADO
+    const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+    const [renewingLoanId, setRenewingLoanId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Nuevos estados para el modal de devolución
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [returningLoan, setReturningLoan] = useState(null);
 
     const fetchLoans = async () => {
         try {
@@ -49,17 +55,6 @@ const LoanManagementPage = () => {
         }
     };
 
-    const handleReturnLoan = async (loanId) => {
-        if (window.confirm('¿Confirmas la devolución de este ítem?')) {
-            try {
-                await api.post(`/loans/return/${loanId}`);
-                fetchLoans();
-            } catch (err) {
-                alert(err.response?.data?.msg || 'Error al procesar la devolución.');
-            }
-        }
-    };
-
     const handleOpenRenewModal = (loanId) => {
         setRenewingLoanId(loanId);
         setIsRenewModalOpen(true);
@@ -73,6 +68,25 @@ const LoanManagementPage = () => {
             fetchLoans();
         } catch (err) {
             alert(err.response?.data?.msg || 'Error al renovar el préstamo.');
+        }
+    };
+
+    // Abre el modal de devolución
+    const handleOpenReturnModal = (loan) => {
+        setReturningLoan(loan);
+        setIsReturnModalOpen(true);
+    };
+
+    // Envía la devolución con el nuevo estado del ítem
+    const handleReturnLoan = async ({ newStatus }) => {
+        if (!returningLoan) return;
+        try {
+            await api.post(`/loans/return/${returningLoan._id}`, { newStatus });
+            setIsReturnModalOpen(false);
+            setReturningLoan(null);
+            fetchLoans();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Error al procesar la devolución.');
         }
     };
 
@@ -97,6 +111,10 @@ const LoanManagementPage = () => {
 
             <Modal isOpen={isRenewModalOpen} onClose={() => setIsRenewModalOpen(false)} title="Renovar Préstamo">
                 <RenewLoanForm onSubmit={handleRenewLoan} onCancel={() => setIsRenewModalOpen(false)} />
+            </Modal>
+            
+            <Modal isOpen={isReturnModalOpen} onClose={() => setIsReturnModalOpen(false)} title="Procesar Devolución">
+                <ReturnLoanForm onSubmit={handleReturnLoan} onCancel={() => setIsReturnModalOpen(false)} />
             </Modal>
 
             <h2 className="mt-10 text-2xl font-bold text-gray-800 dark:text-white">Historial de Préstamos</h2>
@@ -127,7 +145,7 @@ const LoanManagementPage = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     {(loan.estado === 'enCurso' || loan.estado === 'atrasado') && (
-                                        <button onClick={() => handleReturnLoan(loan._id)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Devolver</button>
+                                        <button onClick={() => handleOpenReturnModal(loan)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Devolver</button>
                                     )}
                                     {loan.estado === 'enCurso' && (
                                         <button onClick={() => handleOpenRenewModal(loan._id)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Renovar</button>

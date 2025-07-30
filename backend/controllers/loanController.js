@@ -1,10 +1,8 @@
+// backend/controllers/loanController.js
 const Loan = require('../models/Loan');
 const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
 const ResourceInstance = require('../models/ResourceInstance');
-// NOTA: Asegúrate de que los modelos Libro y Resource se importen si es necesario
-// const Libro = require('../models/Libro'); 
-// const Resource = require('../models/Resource');
 
 // Función para calcular días hábiles
 function addBusinessDays(startDate, days) {
@@ -19,8 +17,6 @@ function addBusinessDays(startDate, days) {
     }
     return currentDate;
 }
-
-// --- Tus funciones existentes (sin cambios) ---
 
 // Crear un nuevo préstamo
 exports.createLoan = async (req, res) => {
@@ -65,15 +61,18 @@ exports.createLoan = async (req, res) => {
     }
 };
 
-// Devolver un préstamo
+// Devolver un préstamo (VERSIÓN MODIFICADA)
 exports.returnLoan = async (req, res) => {
     const { loanId } = req.params;
+    const { newStatus = 'disponible' } = req.body;
+
     try {
         const loan = await Loan.findById(loanId);
         if (!loan) return res.status(404).json({ msg: 'Préstamo no encontrado.' });
 
         const fechaDevolucion = new Date();
         loan.fechaDevolucion = fechaDevolucion;
+
         if (fechaDevolucion > new Date(loan.fechaVencimiento)) {
             loan.estado = 'atrasado';
             const user = await User.findById(loan.usuarioId);
@@ -88,7 +87,8 @@ exports.returnLoan = async (req, res) => {
         await loan.save();
         
         const ItemModel = loan.itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
-        await ItemModel.findByIdAndUpdate(loan.item, { estado: 'disponible' });
+        await ItemModel.findByIdAndUpdate(loan.item, { estado: newStatus });
+
         res.json({ msg: 'Préstamo devuelto exitosamente.', loan });
     } catch (err) {
         console.error(err.message);
@@ -167,12 +167,9 @@ exports.renewLoan = async (req, res) => {
     }
 };
 
-
-// --- FUNCIÓN CORREGIDA Y MEJORADA ---
 // Obtener los préstamos del usuario autenticado
 exports.getMyLoans = async (req, res) => {
     try {
-        // Ahora busca préstamos 'enCurso' Y 'atrasado'
         const loans = await Loan.find({ 
             usuarioId: req.user.id, 
             estado: { $in: ['enCurso', 'atrasado'] } 
@@ -199,10 +196,6 @@ exports.getMyLoans = async (req, res) => {
                 }
             }
             
-            // Verificación para evitar fechas inválidas
-            const fechaPrestamoValida = loan.fechaPrestamo && !isNaN(new Date(loan.fechaPrestamo));
-            const fechaVencimientoValida = loan.fechaVencimiento && !isNaN(new Date(loan.fechaVencimiento));
-
             return {
                 ...loan,
                 itemDetails,
