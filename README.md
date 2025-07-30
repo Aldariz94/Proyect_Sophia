@@ -16,7 +16,6 @@ Este proyecto forma parte de la titulación en Ingeniería en Informática. Es u
   - [Configuración del Backend](#configuración-del-backend)
   - [Configuración del Frontend](#configuración-del-frontend)
 - [🧪 Endpoints Principales de la API](#-endpoints-principales-de-la-api)
-- [🤝 Contribuciones](#-contribuciones)
 - [📜 Licencia](#-licencia)
 - [👨‍💻 Autor](#-autor)
 
@@ -84,31 +83,29 @@ El repositorio está organizado en dos carpetas principales: `backend` y `fronte
 
 ### Backend
 
-```
-/backend
-├── controllers/        # Lógica de negocio de la API
-├── middleware/         # Autenticación y roles
-├── models/             # Esquemas de Mongoose
-├── routes/             # Endpoints de la API
-├── utils/              # Funciones de utilidad
-├── .env                # Variables de entorno (no versionado)
-├── package.json
-└── server.js           # Punto de entrada de Express
-```
+| Carpeta / Archivo | Descripción                                   |
+| ----------------- | --------------------------------------------- |
+| `controllers/`    | Lógica de negocio de la API                   |
+| `middleware/`     | Gestión de autenticación y roles de usuario   |
+| `models/`         | Esquemas de datos con Mongoose                |
+| `routes/`         | Definición de los endpoints REST              |
+| `utils/`          | Funciones de utilidad (ej. cálculo de fechas) |
+| `server.js`       | Punto de entrada del servidor Express         |
+| `.env`            | Variables de entorno (no versionado)          |
+| `package.json`    | Configuración de dependencias y scripts       |
 
 ### Frontend
 
-```
-/frontend
-└── src/
-    ├── components/     # Componentes reutilizables
-    ├── context/        # Estado global (Auth, Theme)
-    ├── hooks/          # Hooks personalizados
-    ├── layouts/        # Estructuras de página
-    ├── pages/          # Vistas principales
-    ├── services/       # Configuración de Axios
-    └── App.js          # Componente raíz
-```
+| Carpeta / Archivo | Descripción                                            |
+| ----------------- | ------------------------------------------------------ |
+| `src/components/` | Componentes reutilizables (formularios, modales, etc.) |
+| `src/context/`    | Manejo de estado global (Auth, Theme)                  |
+| `src/hooks/`      | Hooks personalizados (ej. useAuth)                     |
+| `src/layouts/`    | Plantillas de página (públicas, privadas)              |
+| `src/pages/`      | Vistas principales de la aplicación                    |
+| `src/services/`   | Configuración de Axios para la comunicación API        |
+| `src/App.js`      | Componente raíz que orquesta las rutas y vistas        |
+| `package.json`    | Configuración de dependencias y scripts                |
 
 ---
 
@@ -196,7 +193,7 @@ El repositorio está organizado en dos carpetas principales: `backend` y `fronte
 
 ## 📜 Licencia
 
-Distribuido bajo la Licencia MIT. Para más información, consulta la [MIT License](https://opensource.org/licenses/MIT). Ver el archivo [LICENSE](LICENSE) para detalles.
+Distribuido bajo la Licencia MIT. Para más información, consulta la [MIT License](https://opensource.org/licenses/MIT).&#x20;
 
 ---
 
