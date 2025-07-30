@@ -1,5 +1,6 @@
 const ResourceCRA = require('../models/ResourceCRA');
 const ResourceInstance = require('../models/ResourceInstance');
+const mongoose = require('mongoose');
 
 exports.createResource = async (req, res) => {
     const { resourceData, cantidadInstancias } = req.body;
@@ -121,11 +122,23 @@ exports.getInstancesForResource = async (req, res) => {
     }
 };
 
+// --- FUNCIÓN MODIFICADA ---
 exports.updateInstanceStatus = async (req, res) => {
     const { estado } = req.body;
+    const { instanceId } = req.params;
+
+    // --- VALIDACIÓN ---
+    const allowedStatus = ['disponible', 'prestado', 'mantenimiento', 'reservado'];
+    if (!estado || !allowedStatus.includes(estado)) {
+        return res.status(400).json({ msg: 'Estado no válido.' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(instanceId)) {
+        return res.status(400).json({ msg: 'ID de instancia no válido.' });
+    }
+
     try {
         const instance = await ResourceInstance.findByIdAndUpdate(
-            req.params.instanceId,
+            instanceId,
             { $set: { estado } },
             { new: true }
         );

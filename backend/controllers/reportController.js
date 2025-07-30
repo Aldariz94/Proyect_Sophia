@@ -6,6 +6,22 @@ const mongoose = require('mongoose');
 exports.generateLoanReport = async (req, res) => {
     const { startDate, endDate, status, userId, course, role, bookId } = req.query;
 
+    // --- VALIDACIÓN ---
+    const allowedStatus = ['enCurso', 'devuelto', 'atrasado'];
+    const allowedRoles = ['admin', 'profesor', 'alumno', 'personal', 'visitante'];
+
+    if (status && !allowedStatus.includes(status)) {
+    return res.status(400).json({ msg: 'Estado no válido.' });
+    }
+    if (role && !allowedRoles.includes(role)) {
+        return res.status(400).json({ msg: 'Rol no válido.' });
+    }
+    if (bookId && !mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ msg: 'ID de libro no válido.' });
+    }
+    // No validamos 'course' porque es un string de formato libre, pero la consulta está segura.
+
+
     try {
         let query = {};
         let userQuery = {};

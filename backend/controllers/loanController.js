@@ -66,6 +66,16 @@ exports.returnLoan = async (req, res) => {
     const { loanId } = req.params;
     const { newStatus = 'disponible', observaciones = '' } = req.body; // <-- Lee el nuevo campo
 
+    // ==================================================
+    // =====> AÑADE ESTA VALIDACIÓN AQUÍ <=====
+    // ==================================================
+    const allowedStatus = ['disponible', 'deteriorado', 'extraviado'];
+    if (!allowedStatus.includes(newStatus)) {
+        return res.status(400).json({ msg: 'Estado no válido.' });
+    }
+    // ==================================================
+
+
     try {
         const loan = await Loan.findById(loanId);
         if (!loan) return res.status(404).json({ msg: 'Préstamo no encontrado.' });

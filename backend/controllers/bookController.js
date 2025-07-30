@@ -1,5 +1,6 @@
 const Book = require('../models/Book');
 const Exemplar = require('../models/Exemplar');
+const mongoose = require('mongoose');
 
 // Crear un nuevo libro y sus ejemplares
 exports.createBook = async (req, res) => {
@@ -142,11 +143,23 @@ exports.getExemplarsForBook = async (req, res) => {
 };
 
 // Actualizar el estado de un ejemplar específico
+// --- FUNCIÓN MODIFICADA ---
 exports.updateExemplarStatus = async (req, res) => {
     const { estado } = req.body;
+    const { exemplarId } = req.params;
+
+    // --- VALIDACIÓN ---
+    const allowedStatus = ['disponible', 'prestado', 'reservado', 'deteriorado', 'extraviado'];
+    if (!estado || !allowedStatus.includes(estado)) {
+        return res.status(400).json({ msg: 'Estado no válido.' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(exemplarId)) {
+        return res.status(400).json({ msg: 'ID de ejemplar no válido.' });
+    }
+
     try {
         const exemplar = await Exemplar.findByIdAndUpdate(
-            req.params.exemplarId,
+            exemplarId,
             { $set: { estado } },
             { new: true }
         );
