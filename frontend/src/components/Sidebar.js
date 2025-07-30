@@ -12,8 +12,9 @@ const Sidebar = ({ onNavigate, currentPage }) => {
     { key: 'libros', label: 'Gestión de Libros' },
     { key: 'recursos', label: 'Gestión de Recursos' },
     { key: 'prestamos', label: 'Préstamos' },
-    { key: 'reservas', label: 'Reservas' }, // NUEVO ENLACE
+    { key: 'reservas', label: 'Reservas' },
     { key: 'sanciones', label: 'Atrasos y Sanciones' },
+    { key: 'reportes', label: 'Reportes' }, // NUEVO ENLACE
   ];
 
   return (

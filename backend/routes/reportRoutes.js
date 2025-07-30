@@ -4,7 +4,7 @@ const { generateLoanReport } = require('../controllers/reportController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { checkRole } = require('../middleware/roleMiddleware');
 
-// Solo admin y profesores pueden generar reportes
-router.get('/loans', [authMiddleware, checkRole(['admin', 'profesor'])], generateLoanReport);
+// Proteger la ruta para que solo el admin pueda generar reportes por ahora
+router.get('/loans', [authMiddleware, checkRole(['admin'])], generateLoanReport);
 
 module.exports = router;

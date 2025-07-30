@@ -1,60 +1,72 @@
 const Loan = require('../models/Loan');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
-// @route   GET api/reports/loans
-// @desc    Generar reporte de préstamos
-// @access  Private (Admin, Profesor)
 exports.generateLoanReport = async (req, res) => {
-    const { fechaInicio, fechaFin, curso, usuarioId, estado } = req.query;
-    const requestingUserRole = req.user.rol;
-    const requestingUserId = req.user.id;
-    
+    const { startDate, endDate, status, userId, course, role } = req.query; // Se añade 'role'
+
     try {
         let query = {};
+        let userQuery = {};
 
-        // Construcción de la consulta a la base de datos
-        if (fechaInicio && fechaFin) {
-            query.fechaInicio = { $gte: new Date(fechaInicio), $lte: new Date(fechaFin) };
-        }
-        if (estado) {
-            query.estado = estado;
-        }
-        if (usuarioId) {
-            query.usuarioId = usuarioId;
+        // Filtrar por rango de fechas
+        if (startDate && endDate) {
+            query.fechaInicio = { $gte: new Date(startDate), $lte: new Date(endDate) };
         }
 
-        // Lógica de permisos para profesores
-        if (requestingUserRole === 'profesor') {
-            // Un profesor solo puede ver los préstamos de alumnos de su curso.
-            // Esta lógica es compleja y requeriría saber el curso del profesor.
-            // Por simplicidad, un profesor puede buscar por un curso específico.
-            if (!curso) {
-                return res.status(400).json({ msg: 'Debe especificar un curso para generar el reporte.' });
+        // Filtrar por estado del préstamo
+        if (status) {
+            query.estado = status;
+        }
+
+        // LÓGICA DE FILTRADO DE USUARIO MEJORADA
+        if (role) {
+            userQuery.rol = role;
+        }
+        if (course) {
+            userQuery.curso = course;
+            // Si se especifica un curso, se asume que el rol es 'alumno'
+            userQuery.rol = 'alumno';
+        }
+        if (userId) {
+            userQuery._id = userId;
+        }
+
+        if (Object.keys(userQuery).length > 0) {
+            const users = await User.find(userQuery).select('_id');
+            const userIds = users.map(user => user._id);
+
+            // Si se aplicaron filtros de usuario pero no se encontró ninguno, no hay préstamos que mostrar
+            if (userIds.length === 0) {
+                return res.json([]);
             }
-            const studentIds = await User.find({ curso: curso, rol: 'alumno' }).select('_id');
-            query.usuarioId = { ...query.usuarioId, $in: studentIds.map(s => s._id) };
-        } else if (curso) { // Si es admin y especifica curso
-            const studentIds = await User.find({ curso: curso, rol: 'alumno' }).select('_id');
-            query.usuarioId = { $in: studentIds.map(s => s._id) };
+            query.usuarioId = { $in: userIds };
         }
 
         const loans = await Loan.find(query)
-            .populate('usuarioId', 'primerNombre primerApellido correo rol curso')
-            .populate({
-                path: 'itemDetails',
-                populate: {
-                    path: 'libroId',
-                    model: 'Book',
-                    select: 'titulo'
-                }
-            });
+            .populate('usuarioId', 'primerNombre primerApellido rut curso rol') // Se añade 'rol'
+            .lean();
 
-        // Para el frontend, se enviaría el JSON. La exportación a PDF/Excel
-        // es una tarea del lado del cliente o un microservicio aparte.
-        res.json(loans);
+        const formattedLoans = await Promise.all(loans.map(async (loan) => {
+            let itemDetails = null;
+            if (loan.itemModel === 'Exemplar') {
+                const exemplar = await mongoose.model('Exemplar').findById(loan.item).populate('libroId', 'titulo');
+                if (exemplar && exemplar.libroId) {
+                    itemDetails = { name: `${exemplar.libroId.titulo} (Copia #${exemplar.numeroCopia})` };
+                }
+            } else if (loan.itemModel === 'ResourceInstance') {
+                const instance = await mongoose.model('ResourceInstance').findById(loan.item).populate('resourceId', 'nombre');
+                if (instance && instance.resourceId) {
+                    itemDetails = { name: `${instance.resourceId.nombre} (${instance.codigoInterno})` };
+                }
+            }
+            return { ...loan, itemDetails };
+        }));
+
+        res.json(formattedLoans);
 
     } catch (err) {
-        console.error(err.message);
+        console.error("Error al generar el reporte:", err.message);
         res.status(500).send('Error del servidor');
     }
 };

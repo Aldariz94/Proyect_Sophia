@@ -39,6 +39,7 @@ app.use('/api/loans', require('./routes/loanRoutes'));
 app.use('/api/reservations', require('./routes/reservationRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
 
 
 // --- Iniciar el Servidor ---
