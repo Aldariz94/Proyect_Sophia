@@ -4,7 +4,8 @@ import UserManagementPage from './UserManagementPage';
 import BookManagementPage from './BookManagementPage';
 import ResourceManagementPage from './ResourceManagementPage';
 import LoanManagementPage from './LoanManagementPage';
-import SanctionsPage from './SanctionsPage'; // NUEVA IMPORTACIÓN
+import SanctionsPage from './SanctionsPage';
+import ReservationsPage from './ReservationsPage'; // NUEVA IMPORTACIÓN
 
 const DashboardLayout = () => {
     const [currentPage, setCurrentPage] = useState('dashboard');
@@ -19,7 +20,9 @@ const DashboardLayout = () => {
                 return <ResourceManagementPage />;
             case 'prestamos':
                 return <LoanManagementPage />;
-            case 'sanciones': // NUEVO CASO
+            case 'reservas': // NUEVO CASO
+                return <ReservationsPage />;
+            case 'sanciones':
                 return <SanctionsPage />;
             case 'dashboard':
             default:

@@ -4,13 +4,14 @@ const Schema = mongoose.Schema;
 const reservationSchema = new Schema({
     usuarioId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     item: { type: Schema.Types.ObjectId, required: true },
-    itemModel: { type: String, required: true, enum: ['Exemplar', 'ResourceCRA'] },
+    itemModel: { type: String, required: true, enum: ['Exemplar', 'ResourceInstance'] },
     fechaReserva: { type: Date, default: Date.now },
-    expiraEn: { type: Date, required: true }, // 2 días hábiles desde la reserva
+    expiraEn: { type: Date, required: true },
     estado: { 
         type: String, 
         required: true, 
-        enum: ['pendiente', 'expirada', 'completada'],
+        // CAMBIO: Se añade 'cancelada' a la lista de valores permitidos
+        enum: ['pendiente', 'expirada', 'completada', 'cancelada'],
         default: 'pendiente'
     }
 }, { timestamps: true });
