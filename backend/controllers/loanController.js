@@ -206,8 +206,6 @@ exports.getMyLoans = async (req, res) => {
             return {
                 ...loan,
                 itemDetails,
-                fechaPrestamo: fechaPrestamoValida ? new Date(loan.fechaPrestamo).toLocaleDateString('es-CL') : 'Fecha inválida',
-                fechaVencimiento: fechaVencimientoValida ? new Date(loan.fechaVencimiento).toLocaleDateString('es-CL') : 'Fecha inválida',
             };
         }));
 

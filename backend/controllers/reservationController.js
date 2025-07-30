@@ -33,6 +33,13 @@ exports.createReservation = async (req, res) => {
             return res.status(403).json({ msg: `Usuario sancionado hasta ${user.sancionHasta.toLocaleDateString()}`});
         }
 
+
+        const activeLoans = await Loan.find({ usuarioId: finalUserId, estado: 'enCurso' }).countDocuments();
+        if (user.rol !== 'profesor' && activeLoans >= 1) {
+            return res.status(403).json({ msg: 'Ya tienes un préstamo activo. No puedes reservar otro ítem hasta que lo devuelvas.' });
+        }
+  
+
         const ItemModel = itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
         const item = await ItemModel.findById(itemId);
 
