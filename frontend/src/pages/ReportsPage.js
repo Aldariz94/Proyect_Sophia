@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import api from '../services/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // CAMBIO: Importación corregida
 
-// Lista de cursos consistente con el formulario de usuarios
 const courseList = [
     "Pre-Kínder", "Kínder", "1° Básico", "2° Básico", "3° Básico", "4° Básico",
     "5° Básico", "6° Básico", "7° Básico", "8° Básico", "1° Medio", "2° Medio",
@@ -10,19 +11,37 @@ const courseList = [
 
 const ReportsPage = () => {
     const [filters, setFilters] = useState({
-        startDate: '',
-        endDate: '',
-        status: '',
-        course: '',
-        role: '' // Nuevo filtro por rol
+        startDate: '', endDate: '', status: '', course: '', role: '', bookTitle: ''
     });
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const [bookSearch, setBookSearch] = useState('');
+    const [bookResults, setBookResults] = useState([]);
+    const [selectedBook, setSelectedBook] = useState(null);
+
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
         setFilters(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleBookSearch = async (e) => {
+        const query = e.target.value;
+        setBookSearch(query);
+        setSelectedBook(null);
+        if (query.length > 2) {
+            const res = await api.get(`/search/all-books?q=${query}`);
+            setBookResults(res.data);
+        } else {
+            setBookResults([]);
+        }
+    };
+
+    const selectBook = (book) => {
+        setSelectedBook(book);
+        setBookSearch(book.titulo);
+        setBookResults([]);
     };
 
     const handleGenerateReport = async () => {
@@ -35,7 +54,8 @@ const ReportsPage = () => {
             if (filters.endDate) params.append('endDate', filters.endDate);
             if (filters.status) params.append('status', filters.status);
             if (filters.course) params.append('course', filters.course);
-            if (filters.role) params.append('role', filters.role); // Añadir rol a los parámetros
+            if (filters.role) params.append('role', filters.role);
+            if (selectedBook) params.append('bookId', selectedBook._id);
 
             const response = await api.get(`/reports/loans?${params.toString()}`);
             setReportData(response.data);
@@ -46,13 +66,37 @@ const ReportsPage = () => {
         }
     };
 
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        doc.text("Reporte de Préstamos - Biblioteca Proyect Sophia", 14, 16);
+        
+        const tableColumn = ["Usuario", "Ítem Prestado", "Fecha Préstamo", "Vencimiento", "Estado"];
+        const tableRows = reportData.map(loan => [
+            `${loan.usuarioId?.primerNombre || ''} ${loan.usuarioId?.primerApellido || ''}`,
+            loan.itemDetails?.name || 'N/A',
+            new Date(loan.fechaInicio).toLocaleDateString('es-CL'),
+            new Date(loan.fechaVencimiento).toLocaleDateString('es-CL'),
+            loan.estado,
+        ]);
+
+        // CAMBIO: Se usa autoTable como una función
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+        });
+
+        const date = new Date().toISOString().split('T')[0];
+        doc.save(`Reporte_Prestamos_${date}.pdf`);
+    };
+
     return (
         <div>
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Generar Reportes</h1>
             
             <div className="mt-6 p-4 bg-white rounded-lg shadow dark:bg-gray-800">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {/* Filtros de Fecha */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* ... (filtros sin cambios) ... */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Inicio</label>
                         <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
@@ -61,7 +105,19 @@ const ReportsPage = () => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Fin</label>
                         <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     </div>
-                    {/* Filtro de Rol */}
+                     <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Filtrar por Libro (Opcional)</label>
+                        <input type="text" value={bookSearch} onChange={handleBookSearch} placeholder="Escribe para buscar un libro..." className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                        {bookResults.length > 0 && (
+                            <ul className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg dark:bg-gray-800 dark:border-gray-600">
+                                {bookResults.map(book => (
+                                    <li key={book._id} onClick={() => selectBook(book)} className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white">
+                                        {book.titulo}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rol de Usuario</label>
                         <select name="role" value={filters.role} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -72,7 +128,6 @@ const ReportsPage = () => {
                             <option value="admin">Admin</option>
                         </select>
                     </div>
-                    {/* Filtro de Curso (ahora es un select) */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Curso (solo alumnos)</label>
                         <select name="course" value={filters.course} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" disabled={filters.role && filters.role !== 'alumno'}>
@@ -80,7 +135,6 @@ const ReportsPage = () => {
                             {courseList.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
-                    {/* Filtro de Estado */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Estado del Préstamo</label>
                         <select name="status" value={filters.status} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -91,14 +145,23 @@ const ReportsPage = () => {
                         </select>
                     </div>
                 </div>
-                <div className="mt-4 text-right">
+                <div className="mt-4 flex justify-end">
                     <button onClick={handleGenerateReport} className="px-6 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                         {loading ? 'Generando...' : 'Generar Reporte'}
                     </button>
                 </div>
             </div>
 
-            <div className="mt-8 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
+            {reportData.length > 0 && (
+                <div className="mt-8 flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Resultados del Reporte</h2>
+                    <button onClick={handleExportPDF} className="px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                        Exportar a PDF
+                    </button>
+                </div>
+            )}
+
+            <div className="mt-4 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
                 <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>

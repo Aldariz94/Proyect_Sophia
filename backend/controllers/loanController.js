@@ -2,6 +2,9 @@ const Loan = require('../models/Loan');
 const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
 const ResourceInstance = require('../models/ResourceInstance');
+// NOTA: Asegúrate de que los modelos Libro y Resource se importen si es necesario
+// const Libro = require('../models/Libro'); 
+// const Resource = require('../models/Resource');
 
 // Función para calcular días hábiles
 function addBusinessDays(startDate, days) {
@@ -16,6 +19,8 @@ function addBusinessDays(startDate, days) {
     }
     return currentDate;
 }
+
+// --- Tus funciones existentes (sin cambios) ---
 
 // Crear un nuevo préstamo
 exports.createLoan = async (req, res) => {
@@ -91,14 +96,13 @@ exports.returnLoan = async (req, res) => {
     }
 };
 
-// Obtener todos los préstamos (CORREGIDO)
+// Obtener todos los préstamos
 exports.getAllLoans = async (req, res) => {
     try {
         const loans = await Loan.find()
             .populate('usuarioId', 'primerNombre primerApellido')
-            .lean(); // Usar .lean() para un objeto JS plano, más rápido
+            .lean(); 
 
-        // Procesar manualmente la población dinámica
         const formattedLoans = await Promise.all(loans.map(async (loan) => {
             let itemDetails = null;
             if (loan.itemModel === 'Exemplar') {
@@ -128,8 +132,7 @@ exports.getLoansByUser = async (req, res) => {
         if (req.user.rol !== 'admin' && req.user.id !== req.params.userId) {
             return res.status(403).json({ msg: 'Acceso no autorizado.' });
         }
-        // Esta función también necesitaría la lógica de población manual si se usa
-        const loans = await Loan.find({ usuarioId: req.params.userId }); // Simplificado por ahora
+        const loans = await Loan.find({ usuarioId: req.params.userId }); 
         res.json(loans);
     } catch (err) {
         console.error(err.message);
@@ -160,6 +163,57 @@ exports.renewLoan = async (req, res) => {
         res.json({ msg: `Préstamo renovado por ${days} días hábiles.`, loan });
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};
+
+
+// --- FUNCIÓN CORREGIDA Y MEJORADA ---
+// Obtener los préstamos del usuario autenticado
+exports.getMyLoans = async (req, res) => {
+    try {
+        // Ahora busca préstamos 'enCurso' Y 'atrasado'
+        const loans = await Loan.find({ 
+            usuarioId: req.user.id, 
+            estado: { $in: ['enCurso', 'atrasado'] } 
+        }).lean();
+
+        const populatedLoans = await Promise.all(loans.map(async (loan) => {
+            let itemDetails = { name: 'Ítem no disponible', type: loan.itemModel };
+            
+            if (loan.itemModel === 'Exemplar') {
+                const exemplar = await Exemplar.findById(loan.item).populate({
+                    path: 'libroId',
+                    select: 'titulo'
+                });
+                if (exemplar && exemplar.libroId) {
+                    itemDetails.name = exemplar.libroId.titulo;
+                }
+            } else if (loan.itemModel === 'ResourceInstance') {
+                const instance = await ResourceInstance.findById(loan.item).populate({
+                    path: 'resourceId',
+                    select: 'nombre'
+                });
+                if (instance && instance.resourceId) {
+                    itemDetails.name = instance.resourceId.nombre;
+                }
+            }
+            
+            // Verificación para evitar fechas inválidas
+            const fechaPrestamoValida = loan.fechaPrestamo && !isNaN(new Date(loan.fechaPrestamo));
+            const fechaVencimientoValida = loan.fechaVencimiento && !isNaN(new Date(loan.fechaVencimiento));
+
+            return {
+                ...loan,
+                itemDetails,
+                fechaPrestamo: fechaPrestamoValida ? new Date(loan.fechaPrestamo).toLocaleDateString('es-CL') : 'Fecha inválida',
+                fechaVencimiento: fechaVencimientoValida ? new Date(loan.fechaVencimiento).toLocaleDateString('es-CL') : 'Fecha inválida',
+            };
+        }));
+
+        res.json(populatedLoans);
+    } catch (err) {
+        console.error("Error en getMyLoans:", err.message);
         res.status(500).send('Error del servidor');
     }
 };

@@ -76,3 +76,54 @@ exports.searchAvailableItems = async (req, res) => {
         res.status(500).send('Error del servidor');
     }
 };
+
+// @route   GET api/search/all-books?q=...
+// @desc    Buscar en todos los libros (no solo los disponibles)
+exports.searchAllBooks = async (req, res) => {
+    try {
+        const query = req.query.q;
+        if (!query) {
+            return res.json([]);
+        }
+        const books = await Book.find({
+            titulo: { $regex: query, $options: 'i' }
+        }).select('titulo autor').limit(10);
+        res.json(books);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};
+
+
+// @route   GET /api/search/find-available-copy/:itemType/:baseItemId
+// @desc    Encontrar el ID de una copia (ejemplar o instancia) disponible
+exports.findAvailableCopy = async (req, res) => {
+    try {
+        const { itemType, baseItemId } = req.params;
+
+        let availableCopy = null;
+
+        if (itemType === 'Book') {
+            availableCopy = await Exemplar.findOne({
+                libroId: baseItemId,
+                estado: 'disponible'
+            });
+        } else if (itemType === 'Resource') {
+            availableCopy = await ResourceInstance.findOne({
+                resourceId: baseItemId,
+                estado: 'disponible'
+            });
+        }
+
+        if (!availableCopy) {
+            return res.status(404).json({ msg: 'No se encontraron copias disponibles para este ítem.' });
+        }
+
+        res.json({ copyId: availableCopy._id });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
+    }
+};

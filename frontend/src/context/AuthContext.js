@@ -7,6 +7,7 @@ export const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLogin, setShowLogin] = useState(false); // Estado para la vista de login
 
   const setupUser = async () => {
       const token = localStorage.getItem('token');
@@ -14,7 +15,6 @@ export const AuthProvider = ({ children }) => {
           try {
               const decoded = jwtDecode(token);
               if (decoded.exp * 1000 > Date.now()) {
-                  // Token válido, ahora obtenemos los datos completos del usuario
                   api.defaults.headers.common['x-auth-token'] = token;
                   const res = await api.get('/users/me');
                   setUser(res.data);
@@ -40,7 +40,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { correo, password });
       const { token } = response.data;
       localStorage.setItem('token', token);
-      await setupUser(); // Usamos la misma función para configurar el usuario después del login
+      await setupUser();
+      setShowLogin(false); // Ocultar el login después de un inicio de sesión exitoso
       return true;
     } catch (error) {
       console.error('Error en el inicio de sesión:', error.response?.data?.msg || 'Error de red');
@@ -52,6 +53,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     delete api.defaults.headers.common['x-auth-token'];
     setUser(null);
+    setShowLogin(false); // Asegurarse de que no se muestre el login al cerrar sesión
   };
 
   if (loading) {
@@ -63,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, showLogin, setShowLogin }}>
       {children}
     </AuthContext.Provider>
   );

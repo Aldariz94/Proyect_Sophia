@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 // Permite al servidor entender JSON en el cuerpo de las peticiones
 app.use(express.json());
-
+app.use('/api/reservations', require('./routes/reservationRoutes'));
 // --- Conexión a la Base de Datos (MongoDB) ---
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -40,6 +40,7 @@ app.use('/api/reservations', require('./routes/reservationRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
+app.use('/api/public', require('./routes/publicRoutes'));
 
 
 // --- Iniciar el Servidor ---

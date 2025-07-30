@@ -1,31 +1,41 @@
 const Loan = require('../models/Loan');
 const User = require('../models/User');
+const Book = require('../models/Book');
 const mongoose = require('mongoose');
 
 exports.generateLoanReport = async (req, res) => {
-    const { startDate, endDate, status, userId, course, role } = req.query; // Se añade 'role'
+    const { startDate, endDate, status, userId, course, role, bookId } = req.query;
 
     try {
         let query = {};
         let userQuery = {};
 
-        // Filtrar por rango de fechas
-        if (startDate && endDate) {
-            query.fechaInicio = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        if (bookId) {
+            const exemplars = await mongoose.model('Exemplar').find({ libroId: bookId }).select('_id');
+            const exemplarIds = exemplars.map(ex => ex._id);
+            if (exemplarIds.length === 0) return res.json([]);
+            
+            query.item = { $in: exemplarIds };
+            query.itemModel = 'Exemplar';
         }
 
-        // Filtrar por estado del préstamo
+        // LÓGICA DE FECHAS CORREGIDA
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setUTCHours(23, 59, 59, 999); // Asegura que se incluya todo el día final
+
+            query.fechaInicio = { $gte: start, $lte: end };
+        }
+        
         if (status) {
             query.estado = status;
         }
-
-        // LÓGICA DE FILTRADO DE USUARIO MEJORADA
         if (role) {
             userQuery.rol = role;
         }
         if (course) {
             userQuery.curso = course;
-            // Si se especifica un curso, se asume que el rol es 'alumno'
             userQuery.rol = 'alumno';
         }
         if (userId) {
@@ -35,16 +45,12 @@ exports.generateLoanReport = async (req, res) => {
         if (Object.keys(userQuery).length > 0) {
             const users = await User.find(userQuery).select('_id');
             const userIds = users.map(user => user._id);
-
-            // Si se aplicaron filtros de usuario pero no se encontró ninguno, no hay préstamos que mostrar
-            if (userIds.length === 0) {
-                return res.json([]);
-            }
+            if (userIds.length === 0) return res.json([]);
             query.usuarioId = { $in: userIds };
         }
 
         const loans = await Loan.find(query)
-            .populate('usuarioId', 'primerNombre primerApellido rut curso rol') // Se añade 'rol'
+            .populate('usuarioId', 'primerNombre primerApellido rut curso rol')
             .lean();
 
         const formattedLoans = await Promise.all(loans.map(async (loan) => {
