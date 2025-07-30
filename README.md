@@ -1,71 +1,142 @@
-# 🎓 Proyecto de Título: Biblioteca Escolar CRA - Project Sophia
+# 🎓 Proyecto de Título: Biblioteca Escolar CRA – Project Sophia
 
-Este proyecto es parte de la titulación en Ingeniería en Informática.  
-Sistema de Gestión de Biblioteca completo, desarrollado con el stack MERN (MongoDB, Express, React, Node.js), diseñado para administrar los préstamos de libros y recursos del Centro de Recursos para el Aprendizaje (CRA).
+&#x20;  &#x20;
+
+Este proyecto forma parte de la titulación en Ingeniería en Informática. Es un sistema de gestión de biblioteca completo, desarrollado con el stack **MERN** (MongoDB, Express, React, Node.js), diseñado para administrar préstamos, reservas e inventario de libros y recursos del Centro de Recursos para el Aprendizaje (CRA).
 
 ---
 
 ## 📑 Índice
 
 - [✨ Características y Funcionalidades](#-características-y-funcionalidades)
+- [⚖️ Reglas de Negocio](#️-reglas-de-negocio)
+- [📂 Estructura del Proyecto](#-estructura-del-proyecto)
 - [🌐 Tecnologías Utilizadas](#-tecnologías-utilizadas)
 - [🚀 Guía de Instalación y Ejecución](#-guía-de-instalación-y-ejecución)
   - [Configuración del Backend](#configuración-del-backend)
   - [Configuración del Frontend](#configuración-del-frontend)
-- [🧪 Guía de Pruebas Postman](#-guía-de-pruebas-postman)
+- [🧪 Endpoints Principales de la API](#-endpoints-principales-de-la-api)
+- [🤝 Contribuciones](#-contribuciones)
+- [📜 Licencia](#-licencia)
 - [👨‍💻 Autor](#-autor)
 
 ---
 
 ## ✨ Características y Funcionalidades
 
-### 🔐 Sistema Central
-- **Autenticación por Roles**: Administrador, Profesor, Alumno (JWT).  
-- **Sesión Activa Visible**: Muestra nombre y correo del usuario logueado.  
-- **Interfaz Moderna y Adaptable**: React + Tailwind CSS.  
-- **Modo Oscuro/Claro**: Botón para cambiar tema (predeterminado: oscuro).
+### 👤 Panel de Administrador
 
-### 👤 Gestión de Usuarios
-- **CRUD Completo** con modal.  
-- **Búsqueda Inteligente** en tiempo real por nombre, RUT, correo o curso.  
-- **Formulario Detallado**: todos los campos obligatorios y opcionales.  
-- **Vista de Detalles** en modal de solo lectura.
+- **Dashboard Estadístico**: tarjetas en tiempo real con préstamos del día, reservas, ítems atrasados, usuarios sancionados e ítems que requieren atención.
+- **Gestión de Usuarios (CRUD)**: creación, lectura, actualización y eliminación de usuarios con roles (admin, profesor, alumno).
+- **Gestión de Catálogo (CRUD)**: administración de libros y recursos CRA, incluyendo instancias físicas (ejemplares) con estados individuales.
+- **Gestión de Transacciones**: creación de préstamos, confirmación de reservas, renovaciones y flujo de devoluciones con registro de estado (disponible, deteriorado, extraviado).
+- **Mantenimiento de Inventario**: sección para gestionar ítems deteriorados o extraviados, con opción de reintegrarlos o darlos de baja.
+- **Reportes Avanzados**: generación de reportes filtrados por fecha, estado, usuario, curso o libro, con exportación a PDF.
 
-### 📚 Gestión de Libros
-- **CRUD de libros y ejemplares**.  
-- **Gestión de Inventario**: creación de múltiples ejemplares.  
-- **Estado individual por ejemplar** (Disponible, Deteriorado, etc.).  
-- **Búsqueda y Filtros**: título, autor, ISBN, sede.  
-- **Campo “Sede”** (Media o Básica).
+### 👨‍🎓 Panel de Usuario (Alumno / Profesor)
 
-### 💻 Gestión de Recursos CRA
-- Igual que libros, pero para recursos (notebooks, proyectores, etc.).
+- **Catálogo Personalizado**: vista del catálogo con recursos adicionales para profesores.
+- **Sistema de Reservas**: reservas de ítems disponibles directamente desde el catálogo.
+- **Mis Préstamos**: listado de préstamos activos y fechas de vencimiento.
+- **Mis Reservas**: listado de reservas activas con opción de cancelación.
 
-### 🔄 Gestión de Préstamos
-- **Creación Interactiva** con búsqueda en tiempo real.  
-- **Historial Completo** con estado (enCurso, devuelto, atrasado).  
-- **Acciones**: Devolución y Renovación de días hábiles.  
-- **Búsqueda y Filtros** por usuario, ítem o estado.
+### 🔐 Seguridad y Rendimiento
 
-### 🚫 Gestión de Sanciones
-- **Sección dedicada** a usuarios sancionados.  
-- **Botón “Perdonar Sanción”** para levantar restricciones.
+- **Autenticación Segura**: JWT con roles de acceso.
+- **Rate Limiting**: protección contra ataques de fuerza bruta y DoS.
+- **Validación de Inputs**: sanitización y prevención de inyecciones NoSQL.
+
+### 🌈 Experiencia de Usuario
+
+- **Interfaz Moderna**: React + Tailwind CSS con diseño responsive.
+- **Selector de Tema**: modo oscuro/claro con persistencia de preferencia.
+
+---
+
+## ⚖️ Reglas de Negocio
+
+### Usuarios
+
+- **Sanciones**: un usuario sancionado no puede solicitar nuevos préstamos ni reservas.
+
+### Préstamos
+
+- **Límites**:
+  - Profesores: múltiples préstamos simultáneos.
+  - Alumnos y otros roles: máximo 1 préstamo activo.
+- **Condiciones**: no debe tener sanciones ni préstamos atrasados.
+- **Vencimiento**:
+  - Libros: 10 días hábiles.
+  - Recursos CRA: mismo día a las 18:00.
+- **Atrasos**: generan sanción equivalente a días de demora.
+
+### Reservas
+
+- **Límites**: mismas condiciones que préstamos.
+- **Expiración**: 2 días hábiles si no se retiran.
+- **Confirmación**: se formaliza como préstamo cuando un admin confirma el retiro.
+
+---
+
+## 📂 Estructura del Proyecto
+
+El repositorio está organizado en dos carpetas principales: `backend` y `frontend`.
+
+### Backend
+
+```
+/backend
+├── controllers/        # Lógica de negocio de la API
+├── middleware/         # Autenticación y roles
+├── models/             # Esquemas de Mongoose
+├── routes/             # Endpoints de la API
+├── utils/              # Funciones de utilidad
+├── .env                # Variables de entorno (no versionado)
+├── package.json
+└── server.js           # Punto de entrada de Express
+```
+
+### Frontend
+
+```
+/frontend
+└── src/
+    ├── components/     # Componentes reutilizables
+    ├── context/        # Estado global (Auth, Theme)
+    ├── hooks/          # Hooks personalizados
+    ├── layouts/        # Estructuras de página
+    ├── pages/          # Vistas principales
+    ├── services/       # Configuración de Axios
+    └── App.js          # Componente raíz
+```
 
 ---
 
 ## 🌐 Tecnologías Utilizadas
 
-- **Backend**  
-  - Node.js & Express (5.1.0)  
-  - MongoDB & Mongoose (8.16.5)  
-  - JWT (9.0.2), bcrypt.js (3.0.2)  
-  - cors (2.8.5), dotenv (17.2.1)
+- **Backend**:
 
-- **Frontend**  
-  - React (19.1.0) & React DOM (19.1.0)  
-  - Tailwind CSS (3.4.4)  
-  - Axios (1.11.0), jwt-decode (4.0.0)  
-  - PostCSS (8.4.38) & Autoprefixer (10.4.19)
+  - Node.js >=14
+  - Express v5.1.0
+  - MongoDB (Mongoose v8.16.5)
+  - JSON Web Token (jsonwebtoken v9.0.2)
+  - bcryptjs v3.0.2
+  - cors v2.8.5
+  - dotenv v17.2.1
+  - express-rate-limit v8.0.1
+
+- **Frontend**:
+
+  - React v19.1.0
+  - React DOM v19.1.0
+  - react-scripts v5.0.1
+  - Axios v1.11.0
+  - jsPDF v3.0.1
+  - jsPDF-AutoTable v5.0.2
+  - jwt-decode v4.0.0
+  - Tailwind CSS v3.4.4
+  - PostCSS v8.4.38
+  - Autoprefixer v10.4.19
 
 ---
 
@@ -73,102 +144,65 @@ Sistema de Gestión de Biblioteca completo, desarrollado con el stack MERN (Mong
 
 ### Configuración del Backend
 
-1. Clona el repositorio  
+1. Clona el repositorio:
    ```bash
    git clone https://github.com/Aldariz94/Proyect_Sophia.git
    cd Proyect_Sophia/backend
    ```
-
-2. Instala dependencias  
+2. Instala dependencias:
    ```bash
    yarn install
    ```
-
-3. Crea un archivo `.env` con:
-   ```
+3. Crea un archivo `.env` en `backend/` con:
+   ```env
    PORT=5000
-   MONGODB_URI=tu_cadena_de_conexion_a_mongodb
-   JWT_SECRET=un_secreto_muy_largo_y_dificil_de_adivinar
+   MONGODB_URI=<tu_cadena_de_conexión>
+   JWT_SECRET=<secreto_seguro>
    ```
-
-4. Inicia el servidor  
+4. Inicia el servidor:
    ```bash
    yarn start
    ```
 
 ### Configuración del Frontend
 
-1. Abre nueva terminal en la carpeta `frontend`  
+1. Abre otra terminal y navega a `frontend/`:
    ```bash
    cd ../frontend
    yarn install
    yarn start
    ```
+2. Abre `http://localhost:3000`.
 
 ---
 
-## 🧪 Guía de Pruebas Postman
+## 🧪 Endpoints Principales de la API
 
-> **Requisito previo:** El backend debe estar corriendo en `http://localhost:5000` y contar con un token de administrador.
+> **Requisito previo:** backend corriendo en `http://localhost:5000` y token de admin.
 
-1. **Iniciar Sesión**  
-   ```http
-   POST http://localhost:5000/api/auth/login
-   Body:
-   {
-     "correo": "admin@sophia.cl",
-     "password": "password_seguro"
-   }
-   ```
+| Método | Ruta                       | Descripción                           | Rol         |
+| ------ | -------------------------- | ------------------------------------- | ----------- |
+| POST   | `/api/auth/login`          | Iniciar sesión y obtener token        | Público     |
+| GET    | `/api/users/me`            | Obtener datos del usuario autenticado | Autenticado |
+| POST   | `/api/users`               | Crear un usuario                      | Admin       |
+| GET    | `/api/books`               | Listar libros                         | Público     |
+| POST   | `/api/books`               | Añadir libro con ejemplares           | Admin       |
+| POST   | `/api/loans`               | Crear préstamo                        | Admin       |
+| POST   | `/api/reservations`        | Crear reserva                         | Autenticado |
+| GET    | `/api/dashboard/stats`     | Obtener estadísticas del dashboard    | Admin       |
+| GET    | `/api/inventory/attention` | Ítems que requieren mantenimiento     | Admin       |
 
-2. **Crear Usuarios**  
-   ```http
-   POST http://localhost:5000/api/users
-   Headers: x-auth-token: <tu_token>
-   Body:
-   {
-     "primerNombre": "Ana",
-     "primerApellido": "Rojas",
-     "rut": "22222222-2",
-     "correo": "ana.rojas@sophia.cl",
-     "password": "password_profesor",
-     "rol": "profesor"
-   }
-   ```
+---
 
-3. **Añadir Libros**  
-   ```http
-   POST http://localhost:5000/api/books
-   Headers: x-auth-token: <tu_token>
-   Body:
-   {
-     "libroData": {
-       "titulo": "La Casa de los Espíritus",
-       "autor": "Isabel Allende",
-       "editorial": "Sudamericana",
-       "lugarPublicacion": "Santiago",
-       "añoPublicacion": 1982,
-       "sede": "Media"
-     },
-     "cantidadEjemplares": 4
-   }
-   ```
+## 📜 Licencia
 
-4. **Crear Préstamos**  
-   ```http
-   POST http://localhost:5000/api/loans
-   Headers: x-auth-token: <tu_token>
-   Body:
-   {
-     "usuarioId": "id_del_usuario",
-     "itemId": "id_del_ejemplar_o_instancia",
-     "itemModel": "Exemplar"
-   }
-   ```
+Distribuido bajo la Licencia MIT. Para más información, consulta la [MIT License](https://opensource.org/licenses/MIT). Ver el archivo [LICENSE](LICENSE) para detalles.
 
 ---
 
 ## 👨‍💻 Autor
 
-**Daniel Carreño**  
-Proyecto de título 2025.  
+**Daniel Carreño**\
+Proyecto de Título 2025\
+GitHub: [@Aldariz94](https://github.com/Aldariz94)
+
