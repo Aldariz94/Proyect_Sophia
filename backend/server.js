@@ -56,6 +56,7 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/public', require('./routes/publicRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 
 // --- Iniciar el Servidor ---

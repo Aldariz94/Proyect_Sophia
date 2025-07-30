@@ -6,7 +6,8 @@ import ResourceManagementPage from './ResourceManagementPage';
 import LoanManagementPage from './LoanManagementPage';
 import SanctionsPage from './SanctionsPage';
 import ReservationsPage from './ReservationsPage';
-import ReportsPage from './ReportsPage'; // NUEVA IMPORTACIÓN
+import ReportsPage from './ReportsPage'; 
+import DashboardPage from './DashboardPage';
 
 const DashboardLayout = () => {
     const [currentPage, setCurrentPage] = useState('dashboard');
@@ -29,12 +30,7 @@ const DashboardLayout = () => {
                 return <ReportsPage />;
             case 'dashboard':
             default:
-                return (
-                    <div className="text-gray-800 dark:text-gray-200">
-                        <h2 className="text-3xl font-bold">Bienvenido al Sistema de Biblioteca</h2>
-                        <p className="mt-2 text-lg">Selecciona una opción del menú para comenzar.</p>
-                    </div>
-                );
+                return <DashboardPage />
         }
     };
 
