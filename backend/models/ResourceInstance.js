@@ -10,6 +10,7 @@ const resourceInstanceSchema = new Schema({
         enum: ['disponible', 'prestado', 'mantenimiento', 'reservado'],
         default: 'disponible'
     },
+    observaciones: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('ResourceInstance', resourceInstanceSchema);

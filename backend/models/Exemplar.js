@@ -11,6 +11,7 @@ const exemplarSchema = new Schema({
         enum: ['disponible', 'prestado', 'reservado', 'deteriorado', 'extraviado'],
         default: 'disponible'
     },
+    observaciones: { type: String, default: '' }, 
     ubicacion: { type: String },
     fechaAdquisicion: { type: Date }
 }, { timestamps: true });

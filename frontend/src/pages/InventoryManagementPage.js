@@ -24,19 +24,20 @@ const InventoryManagementPage = () => {
     }, [fetchItems]);
 
     const handleStatusChange = async (item, newStatus) => {
-        const itemModel = item.itemType === 'Libro' ? 'exemplars' : 'instances';
-        const endpoint = `/books/${itemModel}/${item._id}`.replace('books', item.itemType === 'Libro' ? 'books' : 'resources');
+        const endpoint = item.itemType === 'Libro' 
+            ? `/books/exemplars/${item._id}` 
+            : `/resources/instances/${item._id}`;
         
         if (window.confirm(`¿Estás seguro de que quieres cambiar el estado de este ítem a "${newStatus}"?`)) {
             try {
                 await api.put(endpoint, { estado: newStatus });
-                fetchItems();
+                fetchItems(); // Recargar la lista
             } catch (err) {
                 alert(err.response?.data?.msg || 'Error al actualizar el estado.');
             }
         }
     };
-
+    
     const handleDeleteItem = async (item) => {
         if (window.confirm(`ADVERTENCIA: Estás a punto de eliminar permanentemente el registro de esta copia. ¿Deseas continuar?`)) {
             try {
@@ -82,9 +83,15 @@ const InventoryManagementPage = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-medium space-x-4">
+                                        {/* --- INICIO DE LOS CAMBIOS --- */}
                                         {item.estado === 'deteriorado' && (
                                             <button onClick={() => handleStatusChange(item, 'disponible')} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
                                                 Marcar Reparado
+                                            </button>
+                                        )}
+                                        {item.estado === 'extraviado' && (
+                                            <button onClick={() => handleStatusChange(item, 'disponible')} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                                Encontrado/Repuesto
                                             </button>
                                         )}
                                         {(item.estado === 'deteriorado' || item.estado === 'extraviado') && (
@@ -92,6 +99,7 @@ const InventoryManagementPage = () => {
                                                 Dar de Baja
                                             </button>
                                         )}
+                                        {/* --- FIN DE LOS CAMBIOS --- */}
                                     </td>
                                 </tr>
                             ))
