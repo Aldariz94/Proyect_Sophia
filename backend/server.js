@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // --- Configuración de CORS para Producción ---
-const frontendURL = 'https://proyect-sophia-web.onrender.com';
+const frontendURL = 'https://proyect-sophia-fe.onrender.com/';
 
 const corsOptions = {
   origin: frontendURL,
