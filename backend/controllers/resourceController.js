@@ -63,6 +63,11 @@ exports.getResources = async (req, res) => {
 };
 
 exports.updateResource = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de recurso no válido.' });
+    }
+
     try {
         const resource = await ResourceCRA.findByIdAndUpdate(
             req.params.id,
@@ -78,6 +83,11 @@ exports.updateResource = async (req, res) => {
 };
 
 exports.deleteResource = async (req, res) => {
+    
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de recurso no válido.' });
+    }
+
     try {
         const resource = await ResourceCRA.findById(req.params.id);
         if (!resource) return res.status(404).json({ msg: 'Recurso no encontrado.' });
@@ -91,6 +101,11 @@ exports.deleteResource = async (req, res) => {
 };
 
 exports.addInstances = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de recurso no válido.' });
+    }
+
     const { quantity, codigoInternoBase } = req.body;
     try {
         const instanceCount = await ResourceInstance.countDocuments({ resourceId: req.params.id });
@@ -113,6 +128,11 @@ exports.addInstances = async (req, res) => {
 };
 
 exports.getInstancesForResource = async (req, res) => {
+    
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de recurso no válido.' });
+    }
+
     try {
         const instances = await ResourceInstance.find({ resourceId: req.params.id }).sort({ codigoInterno: 'asc' });
         res.json(instances);

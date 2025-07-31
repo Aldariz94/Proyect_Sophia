@@ -65,6 +65,11 @@ exports.getBooks = async (req, res) => {
 
 // Obtener detalles de un libro
 exports.getBookDetails = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de libro no válido.' });
+    }
+
     try {
         const book = await Book.findById(req.params.id);
         if (!book) {
@@ -80,6 +85,11 @@ exports.getBookDetails = async (req, res) => {
 
 // Actualizar un libro
 exports.updateBook = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de libro no válido.' });
+    }
+
     try {
         const book = await Book.findByIdAndUpdate(
             req.params.id,
@@ -96,6 +106,11 @@ exports.updateBook = async (req, res) => {
 
 // Eliminar un libro
 exports.deleteBook = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de libro no válido.' });
+    }
+    
     try {
         const book = await Book.findById(req.params.id);
         if (!book) return res.status(404).json({ msg: 'Libro no encontrado.' });
@@ -110,6 +125,11 @@ exports.deleteBook = async (req, res) => {
 
 // Añadir nuevos ejemplares a un libro existente
 exports.addExemplars = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de libro no válido.' });
+    }
+
     const { quantity } = req.body;
     try {
         const lastExemplar = await Exemplar.findOne({ libroId: req.params.id }).sort({ numeroCopia: -1 });
@@ -133,6 +153,11 @@ exports.addExemplars = async (req, res) => {
 
 // Obtener todos los ejemplares de un libro
 exports.getExemplarsForBook = async (req, res) => {
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de libro no válido.' });
+    }
+
     try {
         const exemplars = await Exemplar.find({ libroId: req.params.id }).sort({ numeroCopia: 'asc' });
         res.json(exemplars);
