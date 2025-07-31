@@ -134,6 +134,7 @@ El repositorio está organizado en dos carpetas principales: `backend` y `fronte
   - Tailwind CSS v3.4.4
   - PostCSS v8.4.38
   - Autoprefixer v10.4.19
+  - Heroicons
 
 ---
 

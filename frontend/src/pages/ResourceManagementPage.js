@@ -3,6 +3,7 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 import ResourceForm from '../components/ResourceForm';
 import ResourceDetails from '../components/ResourceDetails';
+import ImportComponent from '../components/ImportComponent';
 
 const ResourceManagementPage = () => {
     const [resources, setResources] = useState([]);
@@ -13,6 +14,7 @@ const ResourceManagementPage = () => {
     const [editingResource, setEditingResource] = useState(null);
     const [viewingResource, setViewingResource] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const fetchResources = async () => {
         try {
@@ -101,6 +103,9 @@ const ResourceManagementPage = () => {
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Recursos CRA</h1>
                 <div className="flex items-center gap-4">
                      <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                    <button onClick={() => setIsImportModalOpen(true)} className="px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
+                        Importar
+                    </button>
                     <button onClick={handleOpenCreateModal} className="px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 whitespace-nowrap">
                         Crear Recurso
                     </button>
@@ -113,6 +118,13 @@ const ResourceManagementPage = () => {
 
             <Modal isOpen={isViewModalOpen} onClose={handleCloseModals} title="Detalles del Recurso">
                 <ResourceDetails resource={viewingResource} />
+            </Modal>
+
+           <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Recursos desde Excel">
+                <ImportComponent importType="resources" onImportSuccess={() => {
+                    setIsImportModalOpen(false);
+                    fetchResources();
+                }} />
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">

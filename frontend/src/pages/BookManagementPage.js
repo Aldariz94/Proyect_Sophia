@@ -3,6 +3,7 @@ import api from '../services/api';
 import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
 import BookDetails from '../components/BookDetails';
+import ImportComponent from '../components/ImportComponent';
 
 const BookManagementPage = () => {
     const [books, setBooks] = useState([]);
@@ -13,6 +14,7 @@ const BookManagementPage = () => {
     const [editingBook, setEditingBook] = useState(null);
     const [viewingBook, setViewingBook] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const fetchBooks = async () => {
         try {
@@ -99,6 +101,10 @@ const BookManagementPage = () => {
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Libros</h1>
                 <div className="flex items-center gap-4">
                     <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                    {/* 3. Añade el botón de Importar */}
+                    <button onClick={() => setIsImportModalOpen(true)} className="px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
+                        Importar
+                    </button>
                     <button onClick={handleOpenCreateModal} className="px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 whitespace-nowrap">
                         Crear Libro
                     </button>
@@ -111,6 +117,14 @@ const BookManagementPage = () => {
 
             <Modal isOpen={isViewModalOpen} onClose={handleCloseModals} title="Detalles del Libro">
                 <BookDetails book={viewingBook} />
+            </Modal>
+
+                        {/* 4. Añade el nuevo modal de importación */}
+            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Libros desde Excel">
+                <ImportComponent importType="books" onImportSuccess={() => {
+                    setIsImportModalOpen(false);
+                    fetchBooks();
+                }} />
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
