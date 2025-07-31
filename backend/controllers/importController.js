@@ -1,14 +1,16 @@
-// backend/controllers/importController.js
 const xlsx = require('xlsx');
 const User = require('../models/User');
 const Book = require('../models/Book');
 const Exemplar = require('../models/Exemplar');
 const ResourceCRA = require('../models/ResourceCRA');
 const ResourceInstance = require('../models/ResourceInstance');
+const bcrypt = require('bcryptjs');
 
-// --- IMPORTAR USUARIOS (VERSIÓN FINAL Y CORREGIDA) ---
+// --- IMPORTAR USUARIOS (CON DEBUGGING) ---
 exports.importUsers = async (req, res) => {
+    console.log('\n--- [DEBUG] INICIANDO IMPORTACIÓN DE USUARIOS ---');
     if (!req.file) {
+        console.log('[DEBUG] Error: No se subió archivo.');
         return res.status(400).json({ msg: 'No se ha subido ningún archivo.' });
     }
 
@@ -17,47 +19,55 @@ exports.importUsers = async (req, res) => {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(worksheet);
+        console.log(`[DEBUG] Archivo leído. Se encontraron ${data.length} filas.`);
 
         if (data.length === 0) {
-            return res.status(400).json({ msg: 'El archivo de Excel está vacío o tiene un formato incorrecto.' });
+            return res.status(400).json({ msg: 'El archivo Excel está vacío.' });
         }
 
         let successCount = 0;
         const errors = [];
 
-        // Usamos un bucle for...of para procesar cada usuario individualmente
-        // Esto asegura que los hooks del modelo (como el de encriptar contraseña) se ejecuten
         for (const [index, row] of data.entries()) {
+            const currentRow = `Fila ${index + 2}`;
             try {
-                // Validar que los campos obligatorios existan
-                if (!row.primerNombre || !row.primerApellido || !row.rut || !row.correo || !row.rol) {
-                    throw new Error("Faltan campos obligatorios.");
+                console.log(`\n[DEBUG] Procesando ${currentRow}:`, row);
+                
+                if (!row.primerNombre || !row.rut || !row.correo || !row.rol) {
+                    throw new Error("Faltan campos obligatorios (primerNombre, rut, correo, rol).");
                 }
 
                 const password = row.password ? String(row.password) : String(row.rut);
+                console.log(`[DEBUG] ${currentRow}: Contraseña en texto plano: ${password}`);
 
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(password, salt);
+                console.log(`[DEBUG] ${currentRow}: Contraseña encriptada exitosamente.`);
+                
                 const newUser = new User({
                     primerNombre: row.primerNombre,
-                    primerApellido: row.primerApellido,
+                    primerApellido: row.primerApellido || '',
+                    segundoNombre: row.segundoNombre,
+                    segundoApellido: row.segundoApellido,
                     rut: String(row.rut),
                     correo: row.correo,
-                    password: password, // Pasamos la contraseña en texto plano
+                    hashedPassword: hashedPassword,
                     rol: row.rol,
                     curso: row.rol === 'alumno' ? row.curso : undefined
                 });
                 
-                // El método .save() activará el pre-save hook para encriptar la contraseña
                 await newUser.save();
+                console.log(`[DEBUG] ${currentRow}: Usuario guardado en la BD.`);
                 successCount++;
 
             } catch (error) {
-                const errorMessage = error.code === 11000 
-                    ? 'El RUT o correo ya existe.' 
-                    : error.message;
-                errors.push(`Fila ${index + 2}: ${errorMessage}`);
+                console.error(`--- [DEBUG] ERROR en ${currentRow}: ---`, error);
+                const errorMessage = error.code === 11000 ? 'El RUT o correo ya existe.' : error.message;
+                errors.push(`${currentRow}: ${errorMessage}`);
             }
         }
 
+        console.log('--- [DEBUG] Finalizando importación de usuarios. Enviando respuesta... ---');
         res.status(207).json({
             msg: `Proceso completado. Se crearon ${successCount} de ${data.length} usuarios.`,
             successCount,
@@ -66,7 +76,7 @@ exports.importUsers = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('--- [DEBUG] ERROR CATASTRÓFICO (Usuarios): ---', error);
         res.status(500).json({ msg: 'Error en el servidor al procesar el archivo.', details: error.message });
     }
 };
@@ -145,7 +155,7 @@ exports.importBooks = async (req, res) => {
     }
 };
 
-// --- IMPORTAR RECURSOS ---
+// --- IMPORTAR RECURSOS (VERSIÓN CORREGIDA) ---
 exports.importResources = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ msg: 'No se ha subido ningún archivo.' });
@@ -166,10 +176,15 @@ exports.importResources = async (req, res) => {
 
         for (const [index, row] of data.entries()) {
             try {
+                if (!row.nombre || !row.categoria || !row.sede || !row.codigoInternoBase) {
+                    throw new Error("Faltan campos obligatorios (nombre, categoria, sede, codigoInternoBase).");
+                }
+
                 const resourceData = {
                     nombre: row.nombre,
                     categoria: row.categoria,
                     sede: row.sede,
+                    codigoInternoBase: row.codigoInternoBase, // <-- LÍNEA AÑADIDA Y CORREGIDA
                     descripcion: row.descripcion,
                     ubicacion: row.ubicacion
                 };
@@ -192,7 +207,10 @@ exports.importResources = async (req, res) => {
                     await ResourceInstance.insertMany(instances);
                 }
             } catch (error) {
-                errors.push(`Fila ${index + 2}: ${error.message}`);
+                const errorMessage = error.code === 11000 
+                    ? 'El código interno base ya existe.' 
+                    : error.message;
+                errors.push(`Fila ${index + 2}: ${errorMessage}`);
             }
         }
 
@@ -205,6 +223,6 @@ exports.importResources = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: 'Error en el servidor al procesar el archivo.' });
+        res.status(500).json({ msg: 'Error en el servidor al procesar el archivo.', details: error.message });
     }
 };
