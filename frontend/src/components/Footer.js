@@ -1,0 +1,37 @@
+// frontend/src/components/Footer.js
+import React from 'react';
+
+const Footer = () => {
+  // Obtenemos el año actual dinámicamente
+  const currentYear = new Date().getFullYear();
+  
+  // Versión de la aplicación (explicación abajo)
+  const appVersion = "1.0.0";
+
+  return (
+    <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto py-4">
+      <div className="container mx-auto px-6 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex flex-col sm:flex-row justify-between items-center text-center">
+          
+          {/* Columna Izquierda: Copyright */}
+          <p className="mb-2 sm:mb-0">
+            &copy; {currentYear} Proyect Sophia, por Daniel Carreño.
+          </p>
+          
+          {/* Columna Central: Nombre del Colegio */}
+          <p className="mb-2 sm:mb-0 font-semibold">
+            Colegio Inmaculada de Lourdes
+          </p>
+          
+          {/* Columna Derecha: Versión */}
+          <p>
+            Versión {appVersion}
+          </p>
+
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;

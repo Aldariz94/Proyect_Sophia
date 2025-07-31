@@ -9,6 +9,7 @@ import ReservationsPage from './ReservationsPage';
 import ReportsPage from './ReportsPage'; 
 import DashboardPage from './DashboardPage';
 import InventoryManagementPage from './InventoryManagementPage';
+import Footer from '../components/Footer'; 
 
 const DashboardLayout = () => {
     const [currentPage, setCurrentPage] = useState('dashboard');
@@ -38,11 +39,16 @@ const DashboardLayout = () => {
     };
 
     return (
-        <div className="flex bg-gray-100 dark:bg-gray-900">
+        <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
             <Sidebar onNavigate={setCurrentPage} currentPage={currentPage} />
-            <main className="flex-1 p-10">
-                {renderPage()}
-            </main>
+            {/* Este div debe ser una columna flex para que el footer se alinee abajo */}
+            <div className="flex flex-col flex-1">
+                {/* El main crece para empujar el footer */}
+                <main className="flex-1 p-10">
+                    {renderPage()}
+                </main>
+                <Footer />
+            </div>
         </div>
     );
 };

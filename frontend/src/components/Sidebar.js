@@ -1,21 +1,36 @@
+// frontend/src/components/Sidebar.js
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
+import { 
+    HomeIcon, 
+    UserGroupIcon,
+    BookOpenIcon, 
+    CubeIcon,
+    ClipboardDocumentCheckIcon,
+    InboxArrowDownIcon,
+    ExclamationTriangleIcon,
+    WrenchScrewdriverIcon,
+    DocumentChartBarIcon,
+    ArrowLeftStartOnRectangleIcon,
+    SunIcon,
+    MoonIcon
+} from '@heroicons/react/24/outline';
 
 const Sidebar = ({ onNavigate, currentPage }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const navItems = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'usuarios', label: 'Gestión de Usuarios' },
-    { key: 'libros', label: 'Gestión de Libros' },
-    { key: 'recursos', label: 'Gestión de Recursos' },
-    { key: 'prestamos', label: 'Préstamos' },
-    { key: 'reservas', label: 'Reservas' },
-    { key: 'sanciones', label: 'Atrasos y Sanciones' },
-    { key: 'inventario', label: 'Mantenimiento Inventario' },
-    { key: 'reportes', label: 'Reportes' }, 
+    { key: 'dashboard', label: 'Dashboard', icon: HomeIcon },
+    { key: 'usuarios', label: 'Gestión de Usuarios', icon: UserGroupIcon },
+    { key: 'libros', label: 'Gestión de Libros', icon: BookOpenIcon },
+    { key: 'recursos', label: 'Gestión de Recursos', icon: CubeIcon },
+    { key: 'prestamos', label: 'Préstamos', icon: ClipboardDocumentCheckIcon },
+    { key: 'reservas', 'label': 'Reservas', icon: InboxArrowDownIcon },
+    { key: 'sanciones', label: 'Atrasos y Sanciones', icon: ExclamationTriangleIcon },
+    { key: 'inventario', label: 'Mantenimiento Inventario', icon: WrenchScrewdriverIcon },
+    { key: 'reportes', label: 'Reportes', icon: DocumentChartBarIcon },
   ];
 
   return (
@@ -31,24 +46,36 @@ const Sidebar = ({ onNavigate, currentPage }) => {
         <p className="mx-2 mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">{user ? user.correo : ''}</p>
       </div>
       <nav className="flex-grow mt-6">
-        {navItems.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            className={`flex items-center w-full px-4 py-2 mt-2 text-gray-600 transition-colors duration-300 transform rounded-md dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:text-gray-200 hover:text-gray-700 ${
-              currentPage === item.key ? 'bg-gray-200 dark:bg-gray-700' : ''
-            }`}
-            onClick={() => onNavigate(item.key)}
-          >
-            <span className="mx-4 font-medium">{item.label}</span>
-          </button>
-        ))}
+        {navItems.map((item) => {
+          const IconComponent = item.icon;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              className={`flex items-center w-full px-4 py-2 mt-2 text-gray-600 transition-colors duration-300 transform rounded-md dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:text-gray-200 hover:text-gray-700 ${
+                currentPage === item.key ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200' : ''
+              }`}
+              onClick={() => onNavigate(item.key)}
+            >
+              <IconComponent className="w-5 h-5" />
+              <span className="mx-4 font-medium">{item.label}</span>
+            </button>
+          )
+        })}
       </nav>
       <div className="mt-auto">
-        <button onClick={toggleTheme} className="w-full px-4 py-2 mb-4 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600">
+        <button 
+            onClick={toggleTheme} 
+            className="flex items-center justify-center w-full px-4 py-2 mb-4 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600"
+        >
+          {theme === 'light' ? <MoonIcon className="w-5 h-5 mr-2" /> : <SunIcon className="w-5 h-5 mr-2" />}
           Modo {theme === 'light' ? 'Oscuro' : 'Claro'}
         </button>
-        <button onClick={logout} className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+        <button 
+            onClick={logout} 
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+        >
+          <ArrowLeftStartOnRectangleIcon className="w-5 h-5 mr-2" /> {/* <-- ICONO FINAL Y CORRECTO */}
           Cerrar Sesión
         </button>
       </div>
