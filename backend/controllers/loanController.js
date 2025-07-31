@@ -3,6 +3,7 @@ const Loan = require('../models/Loan');
 const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
 const ResourceInstance = require('../models/ResourceInstance');
+const mongoose = require('mongoose');
 
 // Función para calcular días hábiles
 function addBusinessDays(startDate, days) {
@@ -21,6 +22,12 @@ function addBusinessDays(startDate, days) {
 // Crear un nuevo préstamo
 exports.createLoan = async (req, res) => {
     const { usuarioId, itemId, itemModel } = req.body;
+
+    // --- VALIDACIÓN ---
+    if (!mongoose.Types.ObjectId.isValid(usuarioId) || !mongoose.Types.ObjectId.isValid(itemId)) {
+        return res.status(400).json({ msg: 'ID de usuario o de ítem no válido.' });
+    }
+
     try {
         const user = await User.findById(usuarioId);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado.' });
@@ -66,14 +73,14 @@ exports.returnLoan = async (req, res) => {
     const { loanId } = req.params;
     const { newStatus = 'disponible', observaciones = '' } = req.body; // <-- Lee el nuevo campo
 
-    // ==================================================
-    // =====> AÑADE ESTA VALIDACIÓN AQUÍ <=====
-    // ==================================================
+    // --- VALIDACIÓN ---
     const allowedStatus = ['disponible', 'deteriorado', 'extraviado'];
     if (!allowedStatus.includes(newStatus)) {
         return res.status(400).json({ msg: 'Estado no válido.' });
     }
-    // ==================================================
+    if (!mongoose.Types.ObjectId.isValid(loanId)) {
+        return res.status(400).json({ msg: 'ID de préstamo no válido.' });
+    }
 
 
     try {
@@ -144,6 +151,12 @@ exports.getAllLoans = async (req, res) => {
 
 // Obtener los préstamos de un usuario específico
 exports.getLoansByUser = async (req, res) => {
+
+    // --- VALIDACIÓN ---
+    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
+        return res.status(400).json({ msg: 'ID de usuario no válido.' });
+    }
+
     try {
         if (req.user.rol !== 'admin' && req.user.id !== req.params.userId) {
             return res.status(403).json({ msg: 'Acceso no autorizado.' });
@@ -158,10 +171,18 @@ exports.getLoansByUser = async (req, res) => {
 
 // Renovar un préstamo
 exports.renewLoan = async (req, res) => {
+
+    // --- VALIDACIÓN ---
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ msg: 'ID de préstamo no válido.' });
+    }
+
+
     const { days } = req.body;
     if (!days || isNaN(parseInt(days)) || parseInt(days) <= 0) {
         return res.status(400).json({ msg: 'Por favor, proporciona un número válido de días para la renovación.' });
     }
+    
     try {
         let loan = await Loan.findById(req.params.id);
         if (!loan) {

@@ -1,9 +1,3 @@
-/*
- * ----------------------------------------------------------------
- * backend/routes/authRoutes.js (VERSIÓN FINAL)
- * Vuelve a usar process.env para la clave secreta.
- * ----------------------------------------------------------------
- */
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -12,6 +6,12 @@ const User = require('../models/User');
 
 router.post('/login', async (req, res) => {
     const { correo, password } = req.body;
+
+    // --- VALIDACIÓN ---
+    if (typeof correo !== 'string' || typeof password !== 'string') {
+        return res.status(400).json({ msg: 'Datos de entrada no válidos.' });
+    }
+
     try {
         const user = await User.findOne({ correo });
         if (!user) {
