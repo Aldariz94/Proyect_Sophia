@@ -28,3 +28,13 @@ frontend/coverage/
 # Archivos del sistema operativo
 .DS_Store
 Thumbs.db
+
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
