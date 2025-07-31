@@ -16,6 +16,6 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": "18.18.2"
+    "node": "20.11.0"
   }
 }
