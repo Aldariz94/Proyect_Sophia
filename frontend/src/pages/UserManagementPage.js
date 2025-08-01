@@ -1,3 +1,4 @@
+// frontend/src/pages/UserManagementPage.js
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
 import Modal from '../components/Modal';
@@ -5,6 +6,8 @@ import UserForm from '../components/UserForm';
 import UserDetails from '../components/UserDetails';
 import ImportComponent from '../components/ImportComponent';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useNotification } from '../hooks/useNotification';
+import Notification from '../components/Notification';
 
 const UserManagementPage = () => {
     const [users, setUsers] = useState([]);
@@ -16,6 +19,7 @@ const UserManagementPage = () => {
     const [viewingUser, setViewingUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const { notification, showNotification } = useNotification();
 
     const fetchUsers = async () => {
         try {
@@ -69,13 +73,15 @@ const UserManagementPage = () => {
         try {
             if (editingUser) {
                 await api.put(`/users/${editingUser._id}`, userData);
+                showNotification('Usuario actualizado exitosamente.');
             } else {
                 await api.post('/users', userData);
+                showNotification('Usuario creado exitosamente.');
             }
             handleCloseModals();
             fetchUsers();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error al guardar el usuario.');
+            showNotification(err.response?.data?.msg || 'Error al guardar el usuario.', 'error');
         }
     };
 
@@ -83,9 +89,10 @@ const UserManagementPage = () => {
         if (window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
             try {
                 await api.delete(`/users/${userId}`);
+                showNotification('Usuario eliminado exitosamente.');
                 fetchUsers();
             } catch (err) {
-                alert(err.response?.data?.msg || 'Error al eliminar el usuario.');
+                showNotification(err.response?.data?.msg || 'Error al eliminar el usuario.', 'error');
             }
         }
     };
@@ -99,7 +106,6 @@ const UserManagementPage = () => {
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Usuarios</h1>
                 <div className="flex items-center gap-4">
                     <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
-                    {/* 3. Añade el botón de Importar */}
                     <button onClick={() => setIsImportModalOpen(true)} className="flex items-center px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
                         <ArrowUpTrayIcon className="w-5 h-5 mr-2" />
                         Importar
@@ -111,6 +117,9 @@ const UserManagementPage = () => {
                 </div>
             </div>
 
+            {/* La notificación se renderizará aquí cuando esté activa */}
+            <Notification {...notification} />
+
             <Modal isOpen={isFormModalOpen} onClose={handleCloseModals} title={editingUser ? "Editar Usuario" : "Crear Nuevo Usuario"}>
                 <UserForm onSubmit={handleSubmit} onCancel={handleCloseModals} initialData={editingUser} />
             </Modal>
@@ -119,7 +128,6 @@ const UserManagementPage = () => {
                 <UserDetails user={viewingUser} />
             </Modal>
 
-            {/* 4. Añade el nuevo modal de importación */}
             <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Usuarios desde Excel">
                 <ImportComponent importType="users" onImportSuccess={() => {
                     setIsImportModalOpen(false);
@@ -145,7 +153,7 @@ const UserManagementPage = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{user.primerNombre} {user.primerApellido}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rut}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.correo}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rol}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300 capitalize">{user.rol}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rol === 'alumno' ? user.curso : 'N/A'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                     <button onClick={() => handleOpenViewModal(user)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
