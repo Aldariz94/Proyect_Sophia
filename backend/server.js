@@ -21,14 +21,20 @@ const corsOptions = {
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    callback(new Error('CORS policy: Origin no permitida'));
-       // si es un origen no permitido devolvemos 403 en lugar de tirar error 500
+    callback(new Error('Origin no permitida por CORS'), false);
+  },
+    origin: (origin, callback) => {    console.log('🛡️ CORS origin recibido:', origin);
+    // permitir peticiones sin origin (Postman, tests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     callback(new Error('Origin no permitida por CORS'), false);
   },
   optionsSuccessStatus: 200
 };
 
-app.use(cors(corsOptions)); // <-- Usa la nueva configuración
+app.use(cors()); // <-- Usa la nueva configuración
 
 app.use(express.json());
 
