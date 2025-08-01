@@ -6,25 +6,14 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-// --- Configuración de CORS Universal (para Desarrollo y Producción) ---
-const allowedOrigins = [
-    'https://proyect-sophia-fe.onrender.com', // Frontend en Producción
-    'http://localhost:3000'                   // Frontend en Desarrollo Local
-];
+// --- Configuración de CORS para Producción ---
+const frontendURL = 'https://proyect-sophia-fe.onrender.com';
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Permite peticiones sin origen (como las de Postman o apps móviles)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'La política de CORS para este sitio no permite el acceso desde el origen especificado.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  }
+  origin: frontendURL,
+  optionsSuccessStatus: 200 // Para compatibilidad con navegadores antiguos
 };
 
 app.use(cors(corsOptions)); // <-- Usa la nueva configuración de CORS
@@ -62,5 +51,6 @@ app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
 app.use('/api/import', require('./routes/importRoutes'));
+
 
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
