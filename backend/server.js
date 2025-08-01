@@ -10,20 +10,20 @@ const PORT = process.env.PORT || 5000;
 
 // --- Configuración de CORS Universal y Robusta ---
 const allowedOrigins = [
-    'https://proyect-sophia-fe.onrender.com', // Frontend en Producción
+    'https://frontend-production-f4b0.up.railway.app/', // Frontend en Producción
     'http://localhost:3000'                   // Frontend en Desarrollo Local
 ];
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Permite peticiones sin origen (como Postman, apps móviles o redirects)
-    // o si el origen está en nuestra lista blanca.
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('No permitido por la política de CORS'));
+  origin: (origin, callback) => {
+    // permitir peticiones sin origin (ej: Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
-  }
+    callback(new Error('CORS policy: Origin no permitida'));
+  },
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions)); // <-- Usa la nueva configuración
