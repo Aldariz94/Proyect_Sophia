@@ -6,18 +6,26 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+// Railway asigna el puerto automáticamente, pero esto mantiene la compatibilidad local
+const PORT = process.env.PORT || 5000; 
 
-// --- Configuración de CORS para Producción ---
-const frontendURL = 'https://proyect-sophia-fe.onrender.com';
+// --- Configuración de CORS Universal ---
+const allowedOrigins = [
+    'https://proyect-sophia-web-production.up.railway.app', // URL del Frontend de Railway
+    'http://localhost:3000'                                   // URL para desarrollo local
+];
 
 const corsOptions = {
-  origin: frontendURL,
-  optionsSuccessStatus: 200 // Para compatibilidad con navegadores antiguos
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  }
 };
 
-app.use(cors(corsOptions)); // <-- Usa la nueva configuración de CORS
-
+app.use(cors(corsOptions)); // <-- Usa la configuración correcta
 app.use(express.json());
 
 // --- Rate Limiting ---
@@ -51,6 +59,5 @@ app.use('/api/public', require('./routes/publicRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
 app.use('/api/import', require('./routes/importRoutes'));
-
 
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
