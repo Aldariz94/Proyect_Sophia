@@ -14,10 +14,11 @@ import {
     DocumentChartBarIcon,
     ArrowLeftStartOnRectangleIcon,
     SunIcon,
-    MoonIcon
+    MoonIcon,
+    XMarkIcon
 } from '@heroicons/react/24/outline';
 
-const Sidebar = ({ onNavigate, currentPage }) => {
+const Sidebar = ({ onNavigate, currentPage, onCloseRequest  }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -36,6 +37,15 @@ const Sidebar = ({ onNavigate, currentPage }) => {
   return (
     <div className="flex flex-col w-64 h-screen px-4 py-8 bg-white border-r dark:bg-gray-800 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-center text-gray-800 dark:text-white">Proyect Sophia</h2>
+            {/* Botón para cerrar en móvil */}
+      {onCloseRequest && (
+        <button 
+          onClick={onCloseRequest} 
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white md:hidden"
+        >
+          <XMarkIcon className="w-6 h-6" />
+        </button>
+      )}
       <div className="flex flex-col items-center mt-6 -mx-2">
         <div className="w-24 h-24 mx-2 bg-indigo-500 rounded-full flex items-center justify-center">
             <span className="text-4xl font-bold text-white">
