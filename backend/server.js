@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
+app.set('trust proxy', 1);  
 const PORT = process.env.PORT || 5000;
 
 // --- Configuración de CORS Universal y Robusta ---
@@ -34,7 +35,15 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-app.use(cors()); // <-- Usa la nueva configuración
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Origin no permitida por CORS'), false);
+  },
+  optionsSuccessStatus: 200
+})); // <-- Usa la nueva configuración
 
 app.use(express.json());
 
