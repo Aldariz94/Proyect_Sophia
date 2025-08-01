@@ -14,28 +14,7 @@ const allowedOrigins = [
     'http://localhost:3000'                   // Frontend en Desarrollo Local
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // permitir peticiones sin origin (ej: Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Origin no permitida por CORS'), false);
-  },
-    origin: (origin, callback) => {    console.log('🛡️ CORS origin recibido:', origin);
-    // permitir peticiones sin origin (Postman, tests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Origin no permitida por CORS'), false);
-  },
-  optionsSuccessStatus: 200
-};
-
 app.use(cors()); // <-- Usa la nueva configuración
-
 app.use(express.json());
 
 // --- Rate Limiting ---
