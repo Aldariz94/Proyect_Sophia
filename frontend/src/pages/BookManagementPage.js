@@ -4,6 +4,7 @@ import Modal from '../components/Modal';
 import BookForm from '../components/BookForm';
 import BookDetails from '../components/BookDetails';
 import ImportComponent from '../components/ImportComponent';
+import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const BookManagementPage = () => {
     const [books, setBooks] = useState([]);
@@ -102,10 +103,12 @@ const BookManagementPage = () => {
                 <div className="flex items-center gap-4">
                     <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     {/* 3. Añade el botón de Importar */}
-                    <button onClick={() => setIsImportModalOpen(true)} className="px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
+                    <button onClick={() => setIsImportModalOpen(true)} className="flex items-center px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
+                        <ArrowUpTrayIcon className="w-5 h-5 mr-2" />
                         Importar
                     </button>
-                    <button onClick={handleOpenCreateModal} className="px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 whitespace-nowrap">
+                    <button onClick={handleOpenCreateModal} className="flex items-center px-4 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 whitespace-nowrap">
+                        <PlusIcon className="w-5 h-5 mr-2" />
                         Crear Libro
                     </button>
                 </div>
