@@ -1,0 +1,8 @@
+{
+  "name": "proyect-sophia-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}
