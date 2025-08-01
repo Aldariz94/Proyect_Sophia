@@ -22,6 +22,8 @@ const corsOptions = {
       return callback(null, true);
     }
     callback(new Error('CORS policy: Origin no permitida'));
+       // si es un origen no permitido devolvemos 403 en lugar de tirar error 500
+    callback(new Error('Origin no permitida por CORS'), false);
   },
   optionsSuccessStatus: 200
 };
