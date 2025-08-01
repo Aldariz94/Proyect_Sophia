@@ -6,26 +6,28 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
-// Railway asigna el puerto automáticamente, pero esto mantiene la compatibilidad local
-const PORT = process.env.PORT || 5000; 
+const PORT = process.env.PORT || 5000;
 
-// --- Configuración de CORS Universal ---
+// --- Configuración de CORS Universal y Robusta ---
 const allowedOrigins = [
-    'https://proyect-sophia-web-production.up.railway.app', // URL del Frontend de Railway
-    'http://localhost:3000'                                   // URL para desarrollo local
+    'https://proyect-sophia-fe.onrender.com', // Frontend en Producción
+    'http://localhost:3000'                   // Frontend en Desarrollo Local
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
+    // Permite peticiones sin origen (como Postman, apps móviles o redirects)
+    // o si el origen está en nuestra lista blanca.
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('No permitido por CORS'));
+      callback(new Error('No permitido por la política de CORS'));
     }
   }
 };
 
-app.use(cors(corsOptions)); // <-- Usa la configuración correcta
+app.use(cors(corsOptions)); // <-- Usa la nueva configuración
+
 app.use(express.json());
 
 // --- Rate Limiting ---
