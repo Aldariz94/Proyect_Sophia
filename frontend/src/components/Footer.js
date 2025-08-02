@@ -12,7 +12,7 @@ const Footer = () => {
  * - MENOR: Se incrementa al añadir nueva funcionalidad de forma retrocompatible.
  * - PARCHE: Se incrementa para correcciones de bugs de forma retrocompatible.
  */
-  const appVersion = "1.2.0";
+  const appVersion = "1.3.1";
 
   return (
     <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto py-4">
