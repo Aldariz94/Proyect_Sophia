@@ -1,3 +1,7 @@
+import React, { useState, useEffect } from 'react'; // <-- Importaciones añadidas
+import api from '../services/api'; // <-- Importaciones añadidas
+import { useAuth } from '../hooks/useAuth'; // <-- Importaciones añadidas
+
 const MyLoansComponent = () => {
     const [myLoans, setMyLoans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -69,3 +73,5 @@ const MyLoansComponent = () => {
         </div>
     );
 };
+
+export default MyLoansComponent;

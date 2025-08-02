@@ -1,19 +1,15 @@
-import React from 'react'; // CORREGIDO: Se elimina useState
-import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
-import LoginPage from './pages/LoginPage';
-import DashboardLayout from './pages/DashboardLayout';
-import PublicLayout from './layouts/PublicLayout';
-import CatalogPage from './pages/CatalogPage';
-import UserLayout from './layouts/UserLayout';
-import { useAuth } from './hooks/useAuth';
+import React from 'react';
+import { AuthProvider, ThemeProvider } from './context';
+import { useAuth } from './hooks';
+import { PublicLayout, UserLayout, DashboardLayout } from './layouts';
+import { LoginPage, CatalogPage } from './pages';
 
 const AppContent = () => {
     const { user, showLogin, setShowLogin } = useAuth();
 
     if (user) {
         if (user.rol === 'admin') {
-            return <DashboardLayout />;
+            return <DashboardLayout />; // <-- Funciona sin cambios aquí
         }
         return <UserLayout />;
     }

@@ -1,17 +1,21 @@
 import React, { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import UserManagementPage from "./UserManagementPage";
-import BookManagementPage from "./BookManagementPage";
-import ResourceManagementPage from "./ResourceManagementPage";
-import LoanManagementPage from "./LoanManagementPage";
-import SanctionsPage from "./SanctionsPage";
-import ReservationsPage from "./ReservationsPage";
-import ReportsPage from "./ReportsPage";
-import DashboardPage from "./DashboardPage";
-import InventoryManagementPage from "./InventoryManagementPage";
-import Footer from "../components/Footer";
-import MobileSidebar from "../components/MobileSidebar"; // Importa el nuevo componente
+import { Sidebar, Footer, MobileSidebar } from "../components"; // <-- Esta importación ya usa el barril de components
 import { Bars3Icon } from "@heroicons/react/24/outline";
+
+// --- ESTA ES LA SECCIÓN CORREGIDA ---
+// Ahora importamos todas las páginas desde el barril de la carpeta 'pages'
+// La ruta '../pages' sube un nivel desde 'layouts' y luego entra a 'pages'
+import {
+  UserManagementPage,
+  BookManagementPage,
+  ResourceManagementPage,
+  LoanManagementPage,
+  SanctionsPage,
+  ReservationsPage,
+  ReportsPage,
+  DashboardPage,
+  InventoryManagementPage,
+} from "../pages";
 
 const DashboardLayout = () => {
   const [currentPage, setCurrentPage] = useState("dashboard");
@@ -43,17 +47,15 @@ const DashboardLayout = () => {
 
   const handleNavigate = (page) => {
     setCurrentPage(page);
-    setIsMobileMenuOpen(false); // Cierra el menú al navegar
+    setIsMobileMenuOpen(false);
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Menú para pantallas grandes (oculto en móviles) */}
       <div className="hidden md:block">
         <Sidebar onNavigate={handleNavigate} currentPage={currentPage} />
       </div>
 
-      {/* Menú para pantallas pequeñas (móviles) */}
       <MobileSidebar
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
@@ -61,12 +63,11 @@ const DashboardLayout = () => {
         <Sidebar
           onNavigate={handleNavigate}
           currentPage={currentPage}
-          onCloseRequest={() => setIsMobileMenuOpen(false)} // <-- AÑADE ESTA LÍNEA
+          onCloseRequest={() => setIsMobileMenuOpen(false)}
         />
       </MobileSidebar>
 
       <div className="flex flex-col flex-1">
-        {/* Botón para abrir el menú en móviles */}
         <header className="md:hidden p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
           <button onClick={() => setIsMobileMenuOpen(true)}>
             <Bars3Icon className="w-6 h-6 text-gray-800 dark:text-white" />

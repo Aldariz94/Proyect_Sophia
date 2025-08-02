@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks';
 
 const MyLoansPage = () => {
     const [myLoans, setMyLoans] = useState([]);

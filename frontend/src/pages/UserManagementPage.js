@@ -1,13 +1,9 @@
 // frontend/src/pages/UserManagementPage.js
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
-import Modal from '../components/Modal';
-import UserForm from '../components/UserForm';
-import UserDetails from '../components/UserDetails';
-import ImportComponent from '../components/ImportComponent';
+import { Modal, UserForm, UserDetails, ImportComponent, Notification } from '../components';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { useNotification } from '../hooks/useNotification';
-import Notification from '../components/Notification';
+import { useNotification } from '../hooks';
 
 const UserManagementPage = () => {
     const [users, setUsers] = useState([]);

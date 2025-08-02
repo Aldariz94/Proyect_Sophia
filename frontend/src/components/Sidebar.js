@@ -1,7 +1,7 @@
 // frontend/src/components/Sidebar.js
 import React from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../hooks';
+import { useTheme } from '../context';
 import { 
     HomeIcon, 
     UserGroupIcon,

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { useTheme } from '../context/ThemeContext'; // <-- Se importa el nuevo hook
+import { useAuth } from '../hooks';
+import { useTheme } from '../context';
 
 const UserSidebar = ({ onNavigate, currentPage }) => {
     const { user, logout } = useAuth();

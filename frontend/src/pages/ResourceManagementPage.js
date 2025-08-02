@@ -1,12 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
-import Modal from '../components/Modal';
-import ResourceForm from '../components/ResourceForm';
-import ResourceDetails from '../components/ResourceDetails';
-import ImportComponent from '../components/ImportComponent';
+import { Modal, ResourceForm, ResourceDetails, ImportComponent, Notification } from '../components';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { useNotification } from '../hooks/useNotification';
-import Notification from '../components/Notification';
+import { useNotification } from '../hooks';
 
 const ResourceManagementPage = () => {
     const [resources, setResources] = useState([]);

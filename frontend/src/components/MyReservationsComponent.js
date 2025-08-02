@@ -1,3 +1,6 @@
+import React, { useState, useEffect, useCallback } from 'react'; // <-- Importaciones añadidas
+import api from '../services/api'; // <-- Importaciones añadidas
+
 const MyReservationsComponent = () => {
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -76,3 +79,5 @@ const MyReservationsComponent = () => {
         </div>
     );
 };
+
+export default MyReservationsComponent; // <-- LÍNEA AÑADIDA

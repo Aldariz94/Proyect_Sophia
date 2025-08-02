@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
+
 const InventoryManagementPage = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);

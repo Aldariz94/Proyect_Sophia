@@ -1,11 +1,8 @@
 import React, { useState } from "react";
-import UserSidebar from "../components/UserSidebar";
-import MobileSidebar from "../components/MobileSidebar";
+import { UserSidebar, MobileSidebar, Footer } from "../components";
 import { Bars3Icon } from "@heroicons/react/24/outline";
-import CatalogPage from "../pages/CatalogPage";
-import MyLoansPage from "../pages/MyLoansPage";
-import MyReservationsPage from "../pages/MyReservationsPage";
-import Footer from "../components/Footer";
+import { CatalogPage, MyLoansPage, MyReservationsPage } from "../pages";
+
 
 const UserLayout = () => {
   const [currentPage, setCurrentPage] = useState("catalog");

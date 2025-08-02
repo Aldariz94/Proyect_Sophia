@@ -1,31 +1,32 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'; // Se añade useCallback
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../services/api';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth, useNotification } from '../hooks';
+import { Notification } from '../components';
 
 const CatalogPage = ({ isUserView = false }) => {
     const [catalog, setCatalog] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
     const { user } = useAuth();
+    const { notification, showNotification } = useNotification();
 
-    const fetchCatalog = useCallback(async () => { // Se envuelve la función en useCallback
+    const fetchCatalog = useCallback(async () => {
         try {
-            setLoading(true); // Reiniciar estado de carga
+            setLoading(true);
             const endpoint = isUserView ? '/public/user-catalog' : '/public/catalog';
             const response = await api.get(endpoint);
             setCatalog(response.data);
         } catch (err) {
-            setError('No se pudo cargar el catálogo.');
+            showNotification('No se pudo cargar el catálogo.', 'error');
         } finally {
             setLoading(false);
         }
-    }, [isUserView]); // La función ahora depende de isUserView
+    }, [isUserView, showNotification]);
 
     useEffect(() => {
         fetchCatalog();
-    }, [fetchCatalog]); // El efecto ahora depende de la función memorizada
+    }, [fetchCatalog]);
 
+    const [searchTerm, setSearchTerm] = useState('');
     const filteredCatalog = useMemo(() => {
         if (!searchTerm) return catalog;
         const lowerCaseSearch = searchTerm.toLowerCase();
@@ -38,7 +39,7 @@ const CatalogPage = ({ isUserView = false }) => {
 
     const handleReserve = async (item) => {
         if (!user) {
-            alert("Debes iniciar sesión para poder reservar.");
+            showNotification("Debes iniciar sesión para poder reservar.", "error");
             return;
         }
 
@@ -50,36 +51,31 @@ const CatalogPage = ({ isUserView = false }) => {
         const itemModelForDB = item.itemType === 'Libro' ? 'Exemplar' : 'ResourceInstance';
 
         try {
-            // 1. Encontrar una copia disponible
             const res = await api.get(`/search/find-available-copy/${itemTypeForAPI}/${item._id}`);
             const { copyId } = res.data;
 
             if (!copyId) {
-                alert("Lo sentimos, no hay copias disponibles en este momento.");
+                showNotification("Lo sentimos, no hay copias disponibles en este momento.", "error");
                 return;
             }
 
-            // 2. Crear la reserva con el ID de la copia encontrada
             await api.post('/reservations', {
                 itemId: copyId,
                 itemModel: itemModelForDB
-                // El backend usará el ID del usuario del token
             });
 
-            alert(`¡Has reservado "${item.titulo}" exitosamente!`);
-            // Refrescar el catálogo para actualizar el stock disponible
+            showNotification(`¡Has reservado "${item.titulo}" exitosamente!`);
             fetchCatalog();
 
         } catch (err) {
-            alert(err.response?.data?.msg || "No se pudo completar la reserva.");
+            showNotification(err.response?.data?.msg || "No se pudo completar la reserva.", "error");
         }
     };
 
     if (loading) return <div className="text-center text-gray-800 dark:text-gray-200">Cargando catálogo...</div>;
-    if (error) return <div className="text-center text-red-500">{error}</div>;
-
     return (
         <div>
+            <Notification {...notification} />
             <div className="mb-8">
                 <input
                     type="text"

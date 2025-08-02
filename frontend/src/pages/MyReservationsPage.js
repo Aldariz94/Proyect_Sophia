@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { useNotification } from '../hooks';
+import { Notification } from '../components';
 
 const MyReservationsPage = () => {
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const { notification, showNotification } = useNotification();
 
     const fetchReservations = useCallback(async () => {
         try {
@@ -12,12 +14,11 @@ const MyReservationsPage = () => {
             const { data } = await api.get('/reservations/my-reservations');
             setReservations(data);
         } catch (err) {
-            setError('No se pudieron cargar las reservas.');
-            console.error(err);
+            showNotification('No se pudieron cargar las reservas.', 'error');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showNotification]);
 
     useEffect(() => {
         fetchReservations();
@@ -27,20 +28,22 @@ const MyReservationsPage = () => {
         if (window.confirm('¿Estás seguro de que quieres cancelar esta reserva? El ítem volverá a estar disponible.')) {
             try {
                 await api.delete(`/reservations/${reservationId}`);
-                fetchReservations(); // Vuelve a cargar las reservas para actualizar la lista
+                showNotification('Reserva cancelada exitosamente.');
+                fetchReservations();
             } catch (err) {
-                alert(err.response?.data?.msg || 'Error al cancelar la reserva.');
+                showNotification(err.response?.data?.msg || 'Error al cancelar la reserva.', 'error');
             }
         }
     };
 
     if (loading) return <div className="text-center text-gray-800 dark:text-gray-200">Cargando tus reservas...</div>;
-    if (error) return <div className="text-center text-red-500">{error}</div>;
 
     return (
         <div>
+            <Notification {...notification} />
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Mis Reservas</h1>
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
+                {/* ... El resto de la tabla se mantiene igual ... */}
                 <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
