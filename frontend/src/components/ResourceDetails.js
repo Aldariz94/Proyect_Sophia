@@ -1,3 +1,4 @@
+// frontend/src/components/ResourceDetails.js
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
@@ -8,6 +9,21 @@ const DetailRow = ({ label, value }) => (
     </div>
 );
 
+const StatusBadge = ({ status }) => {
+    const statusStyles = {
+        disponible: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        prestado: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        mantenimiento: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        reservado: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
+    };
+
+    return (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
+            {status}
+        </span>
+    );
+};
+
 const ResourceDetails = ({ resource }) => {
     const [instances, setInstances] = useState([]);
 
@@ -17,11 +33,7 @@ const ResourceDetails = ({ resource }) => {
         }
     }, [resource]);
 
-    const handleStatusChange = (instanceId, newStatus) => {
-        api.put(`/resources/instances/${instanceId}`, { estado: newStatus }).then(res => {
-            setInstances(prev => prev.map(inst => inst._id === instanceId ? res.data : inst));
-        });
-    };
+    // La función handleStatusChange ha sido eliminada ya que no se usa.
 
     if (!resource) return null;
 
@@ -35,15 +47,11 @@ const ResourceDetails = ({ resource }) => {
                 <DetailRow label="Descripción" value={resource.descripcion} />
             </dl>
             <h4 className="mt-6 mb-2 font-bold dark:text-white">Unidades</h4>
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-48 overflow-y-auto pr-2">
                 {instances.map(inst => (
                     <div key={inst._id} className="flex items-center justify-between py-2 border-b dark:border-gray-700">
                         <span className="dark:text-gray-300">{inst.codigoInterno}</span>
-                        <select value={inst.estado} onChange={(e) => handleStatusChange(inst._id, e.target.value)} className="px-2 py-1 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="disponible">Disponible</option>
-                            <option value="prestado">Prestado</option>
-                            <option value="mantenimiento">Mantenimiento</option>
-                        </select>
+                        <StatusBadge status={inst.estado} />
                     </div>
                 ))}
             </div>

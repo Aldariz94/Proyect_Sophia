@@ -1,3 +1,4 @@
+// frontend/src/components/BookDetails.js
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
@@ -8,20 +9,35 @@ const DetailRow = ({ label, value }) => (
     </div>
 );
 
+// Componente para la etiqueta de estado, igual que en ResourceDetails
+const StatusBadge = ({ status }) => {
+    const statusStyles = {
+        disponible: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        prestado: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        reservado: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
+        deteriorado: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        extraviado: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    };
+
+    return (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
+            {status}
+        </span>
+    );
+};
+
+
 const BookDetails = ({ book }) => {
     const [exemplars, setExemplars] = useState([]);
 
     useEffect(() => {
         if (book) {
+            // La función para obtener los ejemplares ya existe
             api.get(`/books/${book._id}/exemplars`).then(res => setExemplars(res.data));
         }
     }, [book]);
 
-    const handleStatusChange = (exemplarId, newStatus) => {
-        api.put(`/books/exemplars/${exemplarId}`, { estado: newStatus }).then(res => {
-            setExemplars(prev => prev.map(ex => ex._id === exemplarId ? res.data : ex));
-        });
-    };
+    // La función handleStatusChange ya no se necesita aquí, se ha eliminado
 
     if (!book) return null;
 
@@ -45,16 +61,12 @@ const BookDetails = ({ book }) => {
                 <DetailRow label="Descriptores" value={(book.descriptores || []).join(', ')} />
             </dl>
             <h4 className="mt-6 mb-2 font-bold dark:text-white">Ejemplares</h4>
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-48 overflow-y-auto pr-2">
                 {exemplars.map(ex => (
                     <div key={ex._id} className="flex items-center justify-between py-2 border-b dark:border-gray-700">
                         <span className="dark:text-gray-300">Copia N° {ex.numeroCopia}</span>
-                        <select value={ex.estado} onChange={(e) => handleStatusChange(ex._id, e.target.value)} className="px-2 py-1 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="disponible">Disponible</option>
-                            <option value="prestado">Prestado</option>
-                            <option value="deteriorado">Deteriorado</option>
-                            <option value="extraviado">Extraviado</option>
-                        </select>
+                        {/* Reemplazamos el <select> por la etiqueta de estado */}
+                        <StatusBadge status={ex.estado} />
                     </div>
                 ))}
             </div>

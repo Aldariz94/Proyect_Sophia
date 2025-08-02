@@ -5,6 +5,8 @@ import BookForm from '../components/BookForm';
 import BookDetails from '../components/BookDetails';
 import ImportComponent from '../components/ImportComponent';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useNotification } from '../hooks/useNotification';
+import Notification from '../components/Notification';
 
 const BookManagementPage = () => {
     const [books, setBooks] = useState([]);
@@ -16,6 +18,7 @@ const BookManagementPage = () => {
     const [viewingBook, setViewingBook] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const { notification, showNotification } = useNotification();
 
     const fetchBooks = async () => {
         try {
@@ -72,13 +75,15 @@ const BookManagementPage = () => {
                 if (payload.additionalExemplars > 0) {
                     await api.post(`/books/${editingBook._id}/exemplars`, { quantity: payload.additionalExemplars });
                 }
+                showNotification('Libro actualizado exitosamente.');
             } else {
                 await api.post('/books', payload);
+                showNotification('Libro creado exitosamente.');
             }
             handleCloseModals();
             fetchBooks();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error al guardar el libro.');
+            showNotification(err.response?.data?.msg || 'Error al guardar el libro.', 'error');
         }
     };
 
@@ -86,9 +91,10 @@ const BookManagementPage = () => {
         if (window.confirm('¿Estás seguro de que deseas eliminar este libro y todos sus ejemplares?')) {
             try {
                 await api.delete(`/books/${bookId}`);
+                showNotification('Libro eliminado exitosamente.');
                 fetchBooks();
             } catch (err) {
-                alert(err.response?.data?.msg || 'Error al eliminar el libro.');
+                showNotification(err.response?.data?.msg || 'Error al eliminar el libro.', 'error');
             }
         }
     };
@@ -98,6 +104,7 @@ const BookManagementPage = () => {
 
     return (
         <div>
+            <Notification {...notification} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Libros</h1>
                 <div className="flex items-center gap-4">

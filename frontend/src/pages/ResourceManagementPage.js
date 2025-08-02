@@ -5,6 +5,8 @@ import ResourceForm from '../components/ResourceForm';
 import ResourceDetails from '../components/ResourceDetails';
 import ImportComponent from '../components/ImportComponent';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useNotification } from '../hooks/useNotification';
+import Notification from '../components/Notification';
 
 const ResourceManagementPage = () => {
     const [resources, setResources] = useState([]);
@@ -16,6 +18,7 @@ const ResourceManagementPage = () => {
     const [viewingResource, setViewingResource] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const { notification, showNotification } = useNotification();
 
     const fetchResources = async () => {
         try {
@@ -64,7 +67,7 @@ const ResourceManagementPage = () => {
         setViewingResource(null);
     };
 
-    const handleSubmit = async (payload) => {
+        const handleSubmit = async (payload) => {
         try {
             if (editingResource) {
                 await api.put(`/resources/${editingResource._id}`, payload.resourceData);
@@ -74,13 +77,15 @@ const ResourceManagementPage = () => {
                         codigoInternoBase: editingResource.codigoInterno
                     });
                 }
+                showNotification('Recurso actualizado exitosamente.');
             } else {
                 await api.post('/resources', payload);
+                showNotification('Recurso creado exitosamente.');
             }
             handleCloseModals();
             fetchResources();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error al guardar el recurso.');
+            showNotification(err.response?.data?.msg || 'Error al guardar el recurso.', 'error');
         }
     };
 
@@ -88,9 +93,10 @@ const ResourceManagementPage = () => {
         if (window.confirm('¿Estás seguro de que deseas eliminar este recurso y todas sus instancias?')) {
             try {
                 await api.delete(`/resources/${resourceId}`);
+                showNotification('Recurso eliminado exitosamente.');
                 fetchResources();
             } catch (err) {
-                alert(err.response?.data?.msg || 'Error al eliminar el recurso.');
+                showNotification(err.response?.data?.msg || 'Error al eliminar el recurso.', 'error');
             }
         }
     };
@@ -100,6 +106,7 @@ const ResourceManagementPage = () => {
 
     return (
         <div>
+            <Notification {...notification} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Recursos CRA</h1>
                 <div className="flex items-center gap-4">

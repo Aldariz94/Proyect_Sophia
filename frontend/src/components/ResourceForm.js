@@ -1,8 +1,9 @@
+// frontend/src/components/ResourceForm.js
 import React, { useState, useEffect } from 'react';
 
 const ResourceForm = ({ onSubmit, onCancel, initialData }) => {
     const [resourceData, setResourceData] = useState({
-        nombre: '', categoria: 'tecnologia', codigoInterno: '',
+        nombre: '', categoria: 'tecnologia',
         descripcion: '', ubicacion: '', sede: 'Media',
     });
     const [cantidadInstancias, setCantidadInstancias] = useState(1);
@@ -14,7 +15,6 @@ const ResourceForm = ({ onSubmit, onCancel, initialData }) => {
             setResourceData({
                 nombre: initialData.nombre || '',
                 categoria: initialData.categoria || 'tecnologia',
-                codigoInterno: initialData.codigoInterno || '',
                 descripcion: initialData.descripcion || '',
                 ubicacion: initialData.ubicacion || '',
                 sede: initialData.sede || 'Media',
@@ -42,10 +42,9 @@ const ResourceForm = ({ onSubmit, onCancel, initialData }) => {
                 <label className={labelClass}>Nombre del Recurso (Obligatorio)</label>
                 <input name="nombre" value={resourceData.nombre} onChange={handleChange} placeholder="Proyector Epson" required className={inputClass} />
             </div>
-            <div>
-                <label className={labelClass}>Código Interno Base (Obligatorio)</label>
-                <input name="codigoInterno" value={resourceData.codigoInterno} onChange={handleChange} placeholder="PROY-EPS" required className={inputClass} disabled={isEditing} />
-            </div>
+            
+            {/* --- CAMPO DE CÓDIGO INTERNO ELIMINADO --- */}
+            
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                     <label className={labelClass}>Categoría (Obligatorio)</label>
@@ -75,7 +74,7 @@ const ResourceForm = ({ onSubmit, onCancel, initialData }) => {
             
             {isEditing && (
                  <div>
-                    <label className={labelClass}>Añadir más instancias</label>
+                    <label className={labelClass}>Añadir más Recursos</label>
                     <input type="number" value={additionalInstances} onChange={(e) => setAdditionalInstances(Number(e.target.value))} min="0" className={inputClass} />
                 </div>
             )}

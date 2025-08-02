@@ -3,21 +3,30 @@ const ResourceCRA = require('../models/ResourceCRA');
 const ResourceInstance = require('../models/ResourceInstance');
 const mongoose = require('mongoose');
 
-// --- FUNCIÓN CORREGIDA ---
 exports.createResource = async (req, res) => {
-    // Leemos el objeto anidado 'resourceData' y 'cantidadInstancias'
     const { resourceData, cantidadInstancias } = req.body;
-
+    
     try {
-        // Pasamos el objeto 'resourceData' completo al modelo
+        delete resourceData.codigoInterno; // Nos aseguramos de no usar el del formulario
+
         const newResource = new ResourceCRA(resourceData);
         const savedResource = await newResource.save();
 
         if (cantidadInstancias > 0) {
+            // --- NUEVA LÓGICA DE GENERACIÓN DE CÓDIGO ---
+            const sedePrefix = savedResource.sede === 'Basica' ? 'RBB' : 'RBM';
+
+            // Contamos cuántas instancias ya existen con este prefijo para saber el número inicial
+            const lastInstanceCount = await ResourceInstance.countDocuments({
+                codigoInterno: { $regex: `^${sedePrefix}` }
+            });
+            
             const instances = [];
             for (let i = 1; i <= cantidadInstancias; i++) {
-                // Usamos el codigoInterno del recurso guardado para generar los de las instancias
-                const codigoInternoInstancia = `${savedResource.codigoInterno}-${i}`;
+                // Generamos el número secuencial, rellenando con ceros a la izquierda hasta tener 3 dígitos
+                const sequentialNumber = (lastInstanceCount + i).toString().padStart(3, '0');
+                const codigoInternoInstancia = `${sedePrefix}-${sequentialNumber}`;
+                
                 instances.push({
                     resourceId: savedResource._id,
                     codigoInterno: codigoInternoInstancia,
@@ -29,13 +38,14 @@ exports.createResource = async (req, res) => {
         res.status(201).json({ msg: 'Recurso e instancias creados.', resource: savedResource });
     } catch (err) {
         console.error(err.message);
-        // Devuelve un error más específico si la clave está duplicada
         if (err.code === 11000) {
-            return res.status(400).json({ msg: 'El Código Interno ya existe. Por favor, elige otro.' });
+            return res.status(400).json({ msg: 'Error de duplicado al crear instancias. Inténtelo de nuevo.' });
         }
         res.status(500).send('Error del servidor');
     }
 };
+
+// --- (El resto de las funciones del controlador no cambian) ---
 
 exports.getResources = async (req, res) => {
     try {

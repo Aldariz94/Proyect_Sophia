@@ -9,7 +9,7 @@ const api = axios.create({
   // Railway proveerá la variable de entorno para producción, y usará la de localhost para desarrollo.
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
 });
-console.log('services/api.js baseURL =', api.defaults.baseURL);
+
 
 
 // Interceptor para añadir el token a todas las peticiones protegidas
