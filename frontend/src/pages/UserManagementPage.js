@@ -1,5 +1,4 @@
-// frontend/src/pages/UserManagementPage.js
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../services/api';
 import { Modal, UserForm, UserDetails, ImportComponent, Notification } from '../components';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -17,21 +16,28 @@ const UserManagementPage = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const { notification, showNotification } = useNotification();
 
-    const fetchUsers = async () => {
+    // Estados para la paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+
+    const fetchUsers = useCallback(async (page) => {
         try {
             setLoading(true);
-            const response = await api.get('/users');
-            setUsers(response.data);
+            const response = await api.get(`/users?page=${page}&limit=10`);
+            setUsers(response.data.docs);
+            setTotalPages(response.data.totalPages);
+            setCurrentPage(response.data.page);
         } catch (err) {
             setError('No se pudo cargar la lista de usuarios.');
+            showNotification('No se pudo cargar la lista de usuarios.', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [showNotification]);
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        fetchUsers(currentPage);
+    }, [currentPage, fetchUsers]);
 
     const filteredUsers = useMemo(() => {
         if (!searchTerm) return users;
@@ -75,7 +81,7 @@ const UserManagementPage = () => {
                 showNotification('Usuario creado exitosamente.');
             }
             handleCloseModals();
-            fetchUsers();
+            fetchUsers(currentPage);
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al guardar el usuario.', 'error');
         }
@@ -86,18 +92,18 @@ const UserManagementPage = () => {
             try {
                 await api.delete(`/users/${userId}`);
                 showNotification('Usuario eliminado exitosamente.');
-                fetchUsers();
+                fetchUsers(currentPage);
             } catch (err) {
                 showNotification(err.response?.data?.msg || 'Error al eliminar el usuario.', 'error');
             }
         }
     };
 
-    if (loading) return <div className="text-gray-800 dark:text-gray-200">Cargando usuarios...</div>;
     if (error) return <div className="text-red-500">{error}</div>;
 
     return (
         <div>
+            <Notification {...notification} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Usuarios</h1>
                 <div className="flex items-center gap-4">
@@ -113,9 +119,6 @@ const UserManagementPage = () => {
                 </div>
             </div>
 
-            {/* La notificación se renderizará aquí cuando esté activa */}
-            <Notification {...notification} />
-
             <Modal isOpen={isFormModalOpen} onClose={handleCloseModals} title={editingUser ? "Editar Usuario" : "Crear Nuevo Usuario"}>
                 <UserForm onSubmit={handleSubmit} onCancel={handleCloseModals} initialData={editingUser} />
             </Modal>
@@ -127,40 +130,66 @@ const UserManagementPage = () => {
             <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Usuarios desde Excel">
                 <ImportComponent importType="users" onImportSuccess={() => {
                     setIsImportModalOpen(false);
-                    fetchUsers();
+                    fetchUsers(1);
                 }} />
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Nombre</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">RUT</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Correo</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Rol</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Curso</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {filteredUsers.map(user => (
-                            <tr key={user._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{user.primerNombre} {user.primerApellido}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rut}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.correo}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300 capitalize">{user.rol}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rol === 'alumno' ? user.curso : 'N/A'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                                    <button onClick={() => handleOpenViewModal(user)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
-                                    <button onClick={() => handleOpenEditModal(user)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
-                                    <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
-                                </td>
+                {loading ? (
+                     <div className="p-6 text-center dark:text-gray-300">Cargando usuarios...</div>
+                ) : (
+                    <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Nombre</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">RUT</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Correo</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Rol</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Curso</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {filteredUsers.map(user => (
+                                <tr key={user._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{user.primerNombre} {user.primerApellido}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rut}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.correo}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300 capitalize">{user.rol}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rol === 'alumno' ? user.curso : 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                                        <button onClick={() => handleOpenViewModal(user)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
+                                        <button onClick={() => handleOpenEditModal(user)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
+                                        <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
+
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-end mt-4 text-sm">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mr-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-gray-700 dark:text-gray-300">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 ml-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

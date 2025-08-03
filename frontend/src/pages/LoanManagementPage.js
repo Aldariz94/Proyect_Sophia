@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'; // <-- 1. Se añade useCallback
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../services/api';
 import { Modal, CreateLoanForm, RenewLoanForm, ReturnLoanForm, Notification } from '../components';
 import { useNotification } from '../hooks';
@@ -15,23 +15,27 @@ const LoanManagementPage = () => {
     const [returningLoan, setReturningLoan] = useState(null);
     const { notification, showNotification } = useNotification();
 
-    // 2. Se envuelve la función en useCallback
-    const fetchLoans = useCallback(async () => {
+    // Estados para la paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+
+    const fetchLoans = useCallback(async (page) => {
         try {
             setLoading(true);
-            const response = await api.get('/loans');
-            setLoans(response.data);
+            const response = await api.get(`/loans?page=${page}&limit=10`);
+            setLoans(response.data.docs);
+            setTotalPages(response.data.totalPages);
+            setCurrentPage(response.data.page);
         } catch (err) {
             showNotification('No se pudo cargar el historial de préstamos.', 'error');
         } finally {
             setLoading(false);
         }
-    }, [showNotification]); // Su dependencia es showNotification
+    }, [showNotification]);
 
-    // 3. Se añade fetchLoans al array de dependencias
     useEffect(() => {
-        fetchLoans();
-    }, [fetchLoans]);
+        fetchLoans(currentPage);
+    }, [currentPage, fetchLoans]);
 
     const filteredLoans = useMemo(() => {
         if (!searchTerm) return loans;
@@ -53,7 +57,7 @@ const LoanManagementPage = () => {
         try {
             await api.post('/loans', loanData);
             setIsCreateModalOpen(false);
-            fetchLoans();
+            fetchLoans(currentPage);
             showNotification('Préstamo creado exitosamente.');
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al crear el préstamo.', 'error');
@@ -70,7 +74,7 @@ const LoanManagementPage = () => {
             await api.put(`/loans/${renewingLoanId}/renew`, { days });
             setIsRenewModalOpen(false);
             setRenewingLoanId(null);
-            fetchLoans();
+            fetchLoans(currentPage);
             showNotification('Préstamo renovado exitosamente.');
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al renovar el préstamo.', 'error');
@@ -88,14 +92,12 @@ const LoanManagementPage = () => {
             await api.post(`/loans/return/${returningLoan._id}`, payload);
             setIsReturnModalOpen(false);
             setReturningLoan(null);
-            fetchLoans();
+            fetchLoans(currentPage);
             showNotification('Devolución procesada exitosamente.');
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al procesar la devolución.', 'error');
         }
     };
-
-    if (loading) return <div className="text-gray-800 dark:text-gray-200">Cargando préstamos...</div>;
 
     return (
         <div>
@@ -125,43 +127,69 @@ const LoanManagementPage = () => {
 
             <h2 className="mt-10 text-2xl font-bold text-gray-800 dark:text-white">Historial de Préstamos</h2>
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Usuario</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Ítem Prestado</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Vencimiento</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Estado</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {filteredLoans.map(loan => (
-                            <tr key={loan._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{loan.usuarioId?.primerNombre || 'N/A'} {loan.usuarioId?.primerApellido || ''}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{loan.itemDetails?.titulo || loan.itemDetails?.nombre || 'N/A'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{new Date(loan.fechaVencimiento).toLocaleDateString('es-CL')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
-                                        loan.estado === 'atrasado' ? 'bg-red-100 text-red-800' : 
-                                        loan.estado === 'devuelto' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                                    }`}>
-                                        {loan.estado === 'enCurso' ? 'En Préstamo' : loan.estado}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                                    {(loan.estado === 'enCurso' || loan.estado === 'atrasado') && (
-                                        <button onClick={() => handleOpenReturnModal(loan)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Devolver</button>
-                                    )}
-                                    {loan.estado === 'enCurso' && (
-                                        <button onClick={() => handleOpenRenewModal(loan._id)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Renovar</button>
-                                    )}
-                                </td>
+                {loading ? (
+                    <div className="p-6 text-center dark:text-gray-300">Cargando préstamos...</div>
+                ) : (
+                    <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Usuario</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Ítem Prestado</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Vencimiento</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Estado</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {filteredLoans.map(loan => (
+                                <tr key={loan._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{loan.usuarioId?.primerNombre || 'N/A'} {loan.usuarioId?.primerApellido || ''}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{loan.itemDetails?.titulo || loan.itemDetails?.nombre || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{new Date(loan.fechaVencimiento).toLocaleDateString('es-CL')}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
+                                            loan.estado === 'atrasado' ? 'bg-red-100 text-red-800' : 
+                                            loan.estado === 'devuelto' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                                        }`}>
+                                            {loan.estado === 'enCurso' ? 'En Préstamo' : loan.estado}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                                        {(loan.estado === 'enCurso' || loan.estado === 'atrasado') && (
+                                            <button onClick={() => handleOpenReturnModal(loan)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Devolver</button>
+                                        )}
+                                        {loan.estado === 'enCurso' && (
+                                            <button onClick={() => handleOpenRenewModal(loan._id)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Renovar</button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
+
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-end mt-4 text-sm">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mr-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-gray-700 dark:text-gray-300">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 ml-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

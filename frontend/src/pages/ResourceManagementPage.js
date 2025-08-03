@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../services/api';
 import { Modal, ResourceForm, ResourceDetails, ImportComponent, Notification } from '../components';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -16,20 +16,28 @@ const ResourceManagementPage = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const { notification, showNotification } = useNotification();
 
-    const fetchResources = async () => {
+    // Estados para la paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+
+    const fetchResources = useCallback(async (page) => {
         try {
-            const response = await api.get('/resources');
-            setResources(response.data);
+            setLoading(true);
+            const response = await api.get(`/resources?page=${page}&limit=10`);
+            setResources(response.data.docs);
+            setTotalPages(response.data.totalPages);
+            setCurrentPage(response.data.page);
         } catch (err) {
             setError('No se pudo cargar la lista de recursos.');
+            showNotification('No se pudo cargar la lista de recursos.', 'error');
         } finally {
             setLoading(false);
         }
-    };
-
+    }, [showNotification]);
+    
     useEffect(() => {
-        fetchResources();
-    }, []);
+        fetchResources(currentPage);
+    }, [currentPage, fetchResources]);
     
     const filteredResources = useMemo(() => {
         if (!searchTerm) return resources;
@@ -63,7 +71,7 @@ const ResourceManagementPage = () => {
         setViewingResource(null);
     };
 
-        const handleSubmit = async (payload) => {
+    const handleSubmit = async (payload) => {
         try {
             if (editingResource) {
                 await api.put(`/resources/${editingResource._id}`, payload.resourceData);
@@ -79,7 +87,7 @@ const ResourceManagementPage = () => {
                 showNotification('Recurso creado exitosamente.');
             }
             handleCloseModals();
-            fetchResources();
+            fetchResources(currentPage);
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al guardar el recurso.', 'error');
         }
@@ -90,14 +98,13 @@ const ResourceManagementPage = () => {
             try {
                 await api.delete(`/resources/${resourceId}`);
                 showNotification('Recurso eliminado exitosamente.');
-                fetchResources();
+                fetchResources(currentPage);
             } catch (err) {
                 showNotification(err.response?.data?.msg || 'Error al eliminar el recurso.', 'error');
             }
         }
     };
 
-    if (loading) return <div className="text-gray-800 dark:text-gray-200">Cargando recursos...</div>;
     if (error) return <div className="text-red-500">{error}</div>;
 
     return (
@@ -129,38 +136,64 @@ const ResourceManagementPage = () => {
            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Recursos desde Excel">
                 <ImportComponent importType="resources" onImportSuccess={() => {
                     setIsImportModalOpen(false);
-                    fetchResources();
+                    fetchResources(1); // Al importar, volvemos a la página 1
                 }} />
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-                <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Nombre</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Sede</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Categoría</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Cantidad</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {filteredResources.map(resource => (
-                            <tr key={resource._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{resource.nombre}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{resource.sede}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{resource.categoria}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{`${resource.availableInstances} / ${resource.totalInstances}`}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
-                                    <button onClick={() => handleOpenViewModal(resource)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
-                                    <button onClick={() => handleOpenEditModal(resource)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
-                                    <button onClick={() => handleDelete(resource._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
-                                </td>
+                {loading ? (
+                    <div className="p-6 text-center dark:text-gray-300">Cargando recursos...</div>
+                ) : (
+                    <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Nombre</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Sede</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Categoría</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Cantidad</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {filteredResources.map(resource => (
+                                <tr key={resource._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{resource.nombre}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{resource.sede}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{resource.categoria}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{`${resource.availableInstances} / ${resource.totalInstances}`}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                                        <button onClick={() => handleOpenViewModal(resource)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
+                                        <button onClick={() => handleOpenEditModal(resource)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
+                                        <button onClick={() => handleDelete(resource._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
+            
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-end mt-4 text-sm">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mr-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-gray-700 dark:text-gray-300">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 ml-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

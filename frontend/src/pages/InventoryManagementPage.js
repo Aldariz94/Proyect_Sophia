@@ -1,28 +1,34 @@
 // frontend/src/pages/InventoryManagementPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import { useNotification } from '../hooks';
 
 
 const InventoryManagementPage = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const { showNotification } = useNotification();
 
-    const fetchItems = useCallback(async () => {
+    const fetchItems = useCallback(async (page) => {
         try {
             setLoading(true);
-            const { data } = await api.get('/inventory/attention');
-            setItems(data);
+            const { data } = await api.get(`/inventory/attention?page=${page}&limit=10`);
+            setItems(data.docs);
+            setTotalPages(data.totalPages);
+            setCurrentPage(data.page);
         } catch (err) {
-            setError('No se pudieron cargar los ítems.');
+            showNotification('No se pudieron cargar los ítems.', 'error');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showNotification]);
 
     useEffect(() => {
-        fetchItems();
-    }, [fetchItems]);
+        fetchItems(currentPage);
+    }, [currentPage, fetchItems]);
 
     const handleStatusChange = async (item, newStatus) => {
         const endpoint = item.itemType === 'Libro' 
@@ -114,6 +120,27 @@ const InventoryManagementPage = () => {
                     </tbody>
                 </table>
             </div>
+                  {totalPages > 1 && (
+        <div className="flex justify-end mt-4 text-sm">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 mr-2 rounded-md disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span className="self-center">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 ml-2 rounded-md disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
         </div>
     );
 };

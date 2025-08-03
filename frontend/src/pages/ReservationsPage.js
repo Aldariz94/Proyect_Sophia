@@ -10,17 +10,20 @@ const ReservationsPage = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const { notification, showNotification } = useNotification();
-
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [selectedReservation, setSelectedReservation] = useState(null);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); // <-- 2. Estado re-añadido
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false); 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
 
-    const fetchReservations = useCallback(async () => {
+    const fetchReservations = useCallback(async (page) => {
         try {
             setLoading(true);
-            const response = await api.get('/reservations');
-            setReservations(response.data);
+            const response = await api.get(`/reservations?page=${page}&limit=10`);
+            setReservations(response.data.docs);
+            setTotalPages(response.data.totalPages);
+            setCurrentPage(response.data.page);
         } catch (err) {
             showNotification('No se pudo cargar la lista de reservas.', 'error');
         } finally {
@@ -30,7 +33,7 @@ const ReservationsPage = () => {
 
     useEffect(() => {
         fetchReservations();
-    }, [fetchReservations]);
+    }, [currentPage, fetchReservations]);
 
     const filteredReservations = useMemo(() => {
         if (!searchTerm) return reservations;
@@ -156,6 +159,9 @@ const ReservationsPage = () => {
 
             <h2 className="mt-10 text-2xl font-bold text-gray-800 dark:text-white">Reservas Activas</h2>
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
+                {loading ? (
+                    <div className="p-6 text-center dark:text-gray-300">Cargando Reservas Activas...</div>
+                ) : (
                 <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
@@ -187,7 +193,29 @@ const ReservationsPage = () => {
                         )}
                     </tbody>
                 </table>
+                )}
             </div>
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-end mt-4 text-sm">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mr-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-gray-700 dark:text-gray-300">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 ml-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
