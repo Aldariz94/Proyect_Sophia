@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { useAuth, useNotification } from '../hooks';
 import { Notification } from '../components';
@@ -8,15 +8,19 @@ const CatalogPage = ({ isUserView = false }) => {
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { notification, showNotification } = useNotification();
+    
+    // Estado para el texto que el usuario escribe en tiempo real
     const [searchTerm, setSearchTerm] = useState('');
+    // Estado para el término de búsqueda que se enviará a la API (con retraso)
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
 
-    const fetchCatalog = useCallback(async (page, search = '') => {
+    const fetchCatalog = useCallback(async (page, search) => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({ page, limit: 20 });
+            const params = new URLSearchParams({ page, limit: 20 }); // Mantenemos el límite en 20
             if (search) {
                 params.append('search', search);
             }
@@ -35,31 +39,48 @@ const CatalogPage = ({ isUserView = false }) => {
     }, [isUserView, showNotification]);
 
     // --- LÓGICA DE BÚSQUEDA Y PAGINACIÓN CORREGIDA ---
+
+    // Efecto #1: Se encarga del "debounce".
+    // Espera 500ms después de que el usuario deja de escribir para actualizar el término de búsqueda final.
     useEffect(() => {
         const timer = setTimeout(() => {
-            // Si la página actual no es 1, la reseteamos. Esto disparará el otro useEffect.
-            if (currentPage !== 1) {
-                setCurrentPage(1);
-            } else {
-                // Si ya estamos en la página 1, ejecutamos la búsqueda directamente.
-                fetchCatalog(1, searchTerm);
-            }
-        }, 500); // Aumentamos el tiempo de espera a 500ms
+            setDebouncedSearchTerm(searchTerm);
+            // Al realizar una nueva búsqueda, siempre volvemos a la página 1.
+            setCurrentPage(1);
+        }, 500);
 
         return () => clearTimeout(timer);
-    }, [searchTerm]); // Este efecto solo se dispara cuando el usuario escribe
+    }, [searchTerm]);
 
+    // Efecto #2: Se encarga de llamar a la API.
+    // Se activa solo cuando la página o el término de búsqueda final (debounced) cambian.
     useEffect(() => {
-        // Este efecto solo se dispara para los clics en los botones de paginación
-        // Evitamos que se dispare en la carga inicial si la búsqueda está vacía
-        if (searchTerm === '') {
-            fetchCatalog(currentPage, searchTerm);
-        }
-    }, [currentPage]); // Este efecto solo se dispara cuando se cambia de página
+        fetchCatalog(currentPage, debouncedSearchTerm);
+    }, [currentPage, debouncedSearchTerm, fetchCatalog]);
 
-    // La función handleReserve no cambia
+
     const handleReserve = async (item) => {
-        // ... (código sin cambios)
+        if (!user) {
+            showNotification("Debes iniciar sesión para poder reservar.", "error");
+            return;
+        }
+
+        if (window.confirm(`¿Deseas reservar "${item.titulo}"? Tienes 2 días hábiles para retirarlo.`)) {
+            const itemTypeForAPI = item.itemType === 'Libro' ? 'Book' : 'Resource';
+            const itemModelForDB = item.itemType === 'Libro' ? 'Exemplar' : 'ResourceInstance';
+
+            try {
+                const res = await api.get(`/search/find-available-copy/${itemTypeForAPI}/${item._id}`);
+                const { copyId } = res.data;
+
+                await api.post('/reservations', { itemId: copyId, itemModel: itemModelForDB });
+                showNotification(`¡Has reservado "${item.titulo}" exitosamente!`);
+                // Refresca la página actual para actualizar el stock
+                fetchCatalog(currentPage, debouncedSearchTerm);
+            } catch (err) {
+                showNotification(err.response?.data?.msg || "No se pudo completar la reserva.", "error");
+            }
+        }
     };
 
     return (
@@ -76,9 +97,9 @@ const CatalogPage = ({ isUserView = false }) => {
             </div>
 
             {loading ? (
-                // --- SKELETON LOADER PARA UNA MEJOR EXPERIENCIA VISUAL ---
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
-                    {Array.from({ length: 12 }).map((_, i) => (
+                    {/* Se ajusta el número de skeletons al límite por página */}
+                    {Array.from({ length: 20 }).map((_, i) => (
                         <div key={i} className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
                     ))}
                 </div>
@@ -136,7 +157,7 @@ const CatalogPage = ({ isUserView = false }) => {
                                 disabled={currentPage === totalPages}
                                 className="px-4 py-2 mx-1 font-medium text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Siguiente
+                                Siguientes
                             </button>
                         </div>
                     )}
