@@ -1,29 +1,14 @@
-// backend/controllers/loanController.js
+const mongoose = require('mongoose');
 const Loan = require('../models/Loan');
 const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
 const ResourceInstance = require('../models/ResourceInstance');
-const mongoose = require('mongoose');
+const Reservation = require('../models/Reservation');
+const { addBusinessDays } = require('../utils/dateUtils');
 
-// Función para calcular días hábiles
-function addBusinessDays(startDate, days) {
-    let currentDate = new Date(startDate);
-    let addedDays = 0;
-    while (addedDays < days) {
-        currentDate.setDate(currentDate.getDate() + 1);
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Domingo, 6 = Sábado
-            addedDays++;
-        }
-    }
-    return currentDate;
-}
-
-// Crear un nuevo préstamo
 exports.createLoan = async (req, res) => {
     const { usuarioId, itemId, itemModel } = req.body;
 
-    // --- VALIDACIÓN ---
     if (!mongoose.Types.ObjectId.isValid(usuarioId) || !mongoose.Types.ObjectId.isValid(itemId)) {
         return res.status(400).json({ msg: 'ID de usuario o de ítem no válido.' });
     }
@@ -34,13 +19,13 @@ exports.createLoan = async (req, res) => {
         if (user.sancionHasta && new Date(user.sancionHasta) > new Date()) {
             return res.status(403).json({ msg: `Usuario sancionado hasta ${user.sancionHasta.toLocaleDateString()}`});
         }
-        const overdueLoans = await Loan.findOne({ usuarioId, estado: 'atrasado' });
-        if (overdueLoans) {
-            return res.status(403).json({ msg: 'El usuario tiene préstamos atrasados.' });
-        }
-        const activeLoans = await Loan.find({ usuarioId, estado: 'enCurso' }).countDocuments();
-        if (user.rol !== 'profesor' && activeLoans >= 1) {
-            return res.status(403).json({ msg: 'El usuario ya tiene un préstamo activo. Límite es 1.' });
+        
+        if (user.rol !== 'profesor') {
+            const activeLoansCount = await Loan.countDocuments({ usuarioId, estado: 'enCurso' });
+            const activeReservationsCount = await Reservation.countDocuments({ usuarioId, estado: 'pendiente' });
+            if ((activeLoansCount + activeReservationsCount) >= 1) {
+                return res.status(403).json({ msg: 'El usuario ya ha alcanzado el límite de 1 ítem (entre préstamos y reservas activas).' });
+            }
         }
         
         const ItemModel = itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
@@ -52,9 +37,9 @@ exports.createLoan = async (req, res) => {
         let fechaVencimiento;
         if (itemModel === 'Exemplar') {
             fechaVencimiento = addBusinessDays(new Date(), 10);
-        } else { // ResourceInstance
+        } else {
             fechaVencimiento = new Date();
-            fechaVencimiento.setHours(18, 0, 0, 0);
+            fechaVencimiento.setHours(17, 0, 0, 0);
         }
 
         const newLoan = new Loan({ usuarioId, item: itemId, itemModel, fechaVencimiento });
@@ -68,12 +53,10 @@ exports.createLoan = async (req, res) => {
     }
 };
 
-// Devolver un préstamo (VERSIÓN MODIFICADA)
 exports.returnLoan = async (req, res) => {
     const { loanId } = req.params;
-    const { newStatus = 'disponible', observaciones = '' } = req.body; // <-- Lee el nuevo campo
+    const { newStatus = 'disponible', observaciones = '' } = req.body;
 
-    // --- VALIDACIÓN ---
     const allowedStatus = ['disponible', 'deteriorado', 'extraviado'];
     if (!allowedStatus.includes(newStatus)) {
         return res.status(400).json({ msg: 'Estado no válido.' });
@@ -82,31 +65,29 @@ exports.returnLoan = async (req, res) => {
         return res.status(400).json({ msg: 'ID de préstamo no válido.' });
     }
 
-
     try {
         const loan = await Loan.findById(loanId);
         if (!loan) return res.status(404).json({ msg: 'Préstamo no encontrado.' });
 
-        // ... (lógica de devolución y sanción sin cambios)
         const fechaDevolucion = new Date();
         loan.fechaDevolucion = fechaDevolucion;
 
         if (fechaDevolucion > new Date(loan.fechaVencimiento)) {
             loan.estado = 'atrasado';
             const user = await User.findById(loan.usuarioId);
-            const diasAtraso = Math.ceil((fechaDevolucion - new Date(loan.fechaVencimiento)) / (1000 * 60 * 60 * 24));
-            const sancionHasta = new Date();
-            sancionHasta.setDate(sancionHasta.getDate() + diasAtraso);
-            user.sancionHasta = sancionHasta;
-            await user.save();
+            if (user) {
+                const diasAtraso = Math.ceil((fechaDevolucion - new Date(loan.fechaVencimiento)) / (1000 * 60 * 60 * 24));
+                const sancionHasta = new Date();
+                sancionHasta.setDate(sancionHasta.getDate() + diasAtraso);
+                user.sancionHasta = sancionHasta;
+                await user.save();
+            }
         } else {
             loan.estado = 'devuelto';
         }
         await loan.save();
         
         const ItemModel = loan.itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
-        
-        // Actualiza tanto el estado como las observaciones del ítem
         await ItemModel.findByIdAndUpdate(loan.item, { 
             estado: newStatus,
             observaciones: observaciones
@@ -119,12 +100,12 @@ exports.returnLoan = async (req, res) => {
     }
 };
 
-// Obtener todos los préstamos
+// --- INICIO DE LA CORRECCIÓN ---
 exports.getAllLoans = async (req, res) => {
     try {
         const loans = await Loan.find()
             .populate('usuarioId', 'primerNombre primerApellido')
-            .lean(); 
+            .lean(); // Nota: quitamos el .sort() de aquí para hacerlo después
 
         const formattedLoans = await Promise.all(loans.map(async (loan) => {
             let itemDetails = null;
@@ -142,21 +123,29 @@ exports.getAllLoans = async (req, res) => {
             return { ...loan, itemDetails };
         }));
 
+        // Lógica de ordenamiento personalizada
+        const statusOrder = { 'atrasado': 1, 'enCurso': 2, 'devuelto': 3 };
+        formattedLoans.sort((a, b) => {
+            // Primero, ordena por el estado prioritario
+            if (statusOrder[a.estado] !== statusOrder[b.estado]) {
+                return statusOrder[a.estado] - statusOrder[b.estado];
+            }
+            // Si los estados son iguales, ordena por la fecha más reciente
+            return new Date(b.fechaInicio) - new Date(a.fechaInicio);
+        });
+
         res.json(formattedLoans);
     } catch (err) {
         console.error("Error en getAllLoans:", err.message);
         res.status(500).send('Error del servidor');
     }
 };
+// --- FIN DE LA CORRECCIÓN ---
 
-// Obtener los préstamos de un usuario específico
 exports.getLoansByUser = async (req, res) => {
-
-    // --- VALIDACIÓN ---
     if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
         return res.status(400).json({ msg: 'ID de usuario no válido.' });
     }
-
     try {
         if (req.user.rol !== 'admin' && req.user.id !== req.params.userId) {
             return res.status(403).json({ msg: 'Acceso no autorizado.' });
@@ -169,14 +158,10 @@ exports.getLoansByUser = async (req, res) => {
     }
 };
 
-// Renovar un préstamo
 exports.renewLoan = async (req, res) => {
-
-    // --- VALIDACIÓN ---
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ msg: 'ID de préstamo no válido.' });
     }
-
 
     const { days } = req.body;
     if (!days || isNaN(parseInt(days)) || parseInt(days) <= 0) {
@@ -204,39 +189,24 @@ exports.renewLoan = async (req, res) => {
     }
 };
 
-// Obtener los préstamos del usuario autenticado
 exports.getMyLoans = async (req, res) => {
     try {
         const loans = await Loan.find({ 
-            usuarioId: req.user.id, 
-            estado: { $in: ['enCurso', 'atrasado'] } 
-        }).lean();
+            usuarioId: req.user.id
+        })
+        .sort({ fechaInicio: -1 })
+        .lean();
 
         const populatedLoans = await Promise.all(loans.map(async (loan) => {
-            let itemDetails = { name: 'Ítem no disponible', type: loan.itemModel };
-            
+            let itemDetails = { name: 'Ítem no disponible' };
             if (loan.itemModel === 'Exemplar') {
-                const exemplar = await Exemplar.findById(loan.item).populate({
-                    path: 'libroId',
-                    select: 'titulo'
-                });
-                if (exemplar && exemplar.libroId) {
-                    itemDetails.name = exemplar.libroId.titulo;
-                }
+                const exemplar = await Exemplar.findById(loan.item).populate({ path: 'libroId', select: 'titulo' });
+                if (exemplar && exemplar.libroId) itemDetails.name = exemplar.libroId.titulo;
             } else if (loan.itemModel === 'ResourceInstance') {
-                const instance = await ResourceInstance.findById(loan.item).populate({
-                    path: 'resourceId',
-                    select: 'nombre'
-                });
-                if (instance && instance.resourceId) {
-                    itemDetails.name = instance.resourceId.nombre;
-                }
+                const instance = await ResourceInstance.findById(loan.item).populate({ path: 'resourceId', select: 'nombre' });
+                if (instance && instance.resourceId) itemDetails.name = instance.resourceId.nombre;
             }
-            
-            return {
-                ...loan,
-                itemDetails,
-            };
+            return { ...loan, itemDetails };
         }));
 
         res.json(populatedLoans);
