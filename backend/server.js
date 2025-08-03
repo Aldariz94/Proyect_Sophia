@@ -30,8 +30,8 @@ app.use('/api', limiter);
 
 // --- Conexión a la Base de Datos ---
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB conectado exitosamente.'))
-    .catch(err => console.error('Error de conexión a MongoDB:', err));
+    .then(() => console.log(' ✅ MongoDB conectado exitosamente.'))
+    .catch(err => console.error(' ❌ Error de conexión a MongoDB:', err));
 
 // --- Rutas de la API ---
 app.get('/', (req, res) => {

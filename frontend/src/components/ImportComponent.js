@@ -1,4 +1,3 @@
-// frontend/src/components/ImportComponent.js
 import React, { useState } from 'react';
 import api from '../services/api';
 
@@ -14,7 +13,7 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
 
     const handleUpload = async () => {
         if (!file) {
-            alert('Por favor, selecciona un archivo de Excel.');
+            setResult({ msg: 'Por favor, selecciona un archivo de Excel.', errors: 'No se seleccionó ningún archivo.' });
             return;
         }
 
@@ -24,12 +23,12 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
 
         try {
             const response = await api.post(`/import/${importType}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
             setResult(response.data);
-            onImportSuccess();
+            if (response.data.successCount > 0) {
+                onImportSuccess();
+            }
         } catch (error) {
             const errorData = error.response?.data;
             if (errorData) {
@@ -55,7 +54,6 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
         }
     };
 
-    // Función para renderizar las instrucciones según el tipo de importación
     const renderInstructions = () => {
         let requiredFields = '';
         switch (importType) {
@@ -66,7 +64,7 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
                 requiredFields = 'titulo, autor, editorial, lugarPublicacion, añoPublicacion, sede, cantidadEjemplares.';
                 break;
             case 'resources':
-                requiredFields = 'nombre, categoria, sede, codigoInternoBase, cantidadInstancias.';
+                requiredFields = 'nombre, categoria, sede, cantidadInstancias.';
                 break;
             default:
                 return null;
@@ -93,7 +91,6 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
                 >
                     Descargar Plantilla de {importType === 'users' ? 'Usuarios' : importType === 'books' ? 'Libros' : 'Recursos'}
                 </a>
-                {/* Renderiza las instrucciones aquí */}
                 {renderInstructions()}
             </div>
 
@@ -113,12 +110,12 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
             </button>
 
             {result && (
-                <div className={`mt-4 p-4 rounded-md ${result.errors ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-green-100 dark:bg-green-900'}`}>
-                    <p className={`font-semibold ${result.errors ? 'text-yellow-800 dark:text-yellow-200' : 'text-green-800 dark:text-green-200'}`}>
+                <div className={`mt-4 p-4 rounded-md text-sm ${result.errors || result.msg.startsWith('Error') ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-green-100 dark:bg-green-900'}`}>
+                    <p className={`font-semibold ${result.errors || result.msg.startsWith('Error') ? 'text-yellow-800 dark:text-yellow-200' : 'text-green-800 dark:text-green-200'}`}>
                         {result.msg}
                     </p>
                     {result.errors && (
-                        <pre className="mt-2 text-sm text-yellow-700 dark:text-yellow-300 whitespace-pre-wrap">{result.errors}</pre>
+                        <pre className="mt-2 text-yellow-700 dark:text-yellow-300 whitespace-pre-wrap font-sans">{result.errors}</pre>
                     )}
                 </div>
             )}

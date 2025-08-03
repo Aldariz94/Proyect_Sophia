@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import api from '../services/api';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // CAMBIO: Importación corregida
+import autoTable from 'jspdf-autotable';
+import { useNotification } from '../hooks';
+import { Notification } from '../components';
 
 const courseList = [
     "Pre-Kínder", "Kínder", "1° Básico", "2° Básico", "3° Básico", "4° Básico",
@@ -10,16 +12,18 @@ const courseList = [
 ];
 
 const ReportsPage = () => {
-    const [filters, setFilters] = useState({
-        startDate: '', endDate: '', status: '', course: '', role: '', bookTitle: ''
-    });
+    const [filters, setFilters] = useState({ startDate: '', endDate: '', status: '', course: '', role: '' });
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const { notification, showNotification } = useNotification();
 
     const [bookSearch, setBookSearch] = useState('');
     const [bookResults, setBookResults] = useState([]);
     const [selectedBook, setSelectedBook] = useState(null);
+
+    // Estados para la paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -44,10 +48,9 @@ const ReportsPage = () => {
         setBookResults([]);
     };
 
-    const handleGenerateReport = async () => {
+    // La función de generar reporte ahora acepta el número de página
+    const handleGenerateReport = async (pageToFetch) => {
         setLoading(true);
-        setError('');
-        setReportData([]);
         try {
             const params = new URLSearchParams();
             if (filters.startDate) params.append('startDate', filters.startDate);
@@ -56,11 +59,19 @@ const ReportsPage = () => {
             if (filters.course) params.append('course', filters.course);
             if (filters.role) params.append('role', filters.role);
             if (selectedBook) params.append('bookId', selectedBook._id);
+            params.append('page', pageToFetch);
+            params.append('limit', 15); // Mostramos 15 resultados por página en los reportes
 
             const response = await api.get(`/reports/loans?${params.toString()}`);
-            setReportData(response.data);
+            setReportData(response.data.docs);
+            setTotalPages(response.data.totalPages);
+            setCurrentPage(response.data.page);
+
+            if(response.data.docs.length === 0) {
+                showNotification("No se encontraron resultados para los filtros aplicados.", "error");
+            }
         } catch (err) {
-            setError('Error al generar el reporte.');
+            showNotification('Error al generar el reporte.', 'error');
         } finally {
             setLoading(false);
         }
@@ -76,10 +87,9 @@ const ReportsPage = () => {
             loan.itemDetails?.name || 'N/A',
             new Date(loan.fechaInicio).toLocaleDateString('es-CL'),
             new Date(loan.fechaVencimiento).toLocaleDateString('es-CL'),
-            loan.estado,
+            loan.estado === 'enCurso' ? 'En Préstamo' : loan.estado,
         ]);
 
-        // CAMBIO: Se usa autoTable como una función
         autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
@@ -92,11 +102,11 @@ const ReportsPage = () => {
 
     return (
         <div>
+            <Notification {...notification} />
             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Generar Reportes</h1>
             
             <div className="mt-6 p-4 bg-white rounded-lg shadow dark:bg-gray-800">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* ... (filtros sin cambios) ... */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Inicio</label>
                         <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
@@ -139,14 +149,14 @@ const ReportsPage = () => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Estado del Préstamo</label>
                         <select name="status" value={filters.status} onChange={handleFilterChange} className="mt-1 block w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                             <option value="">Todos</option>
-                            <option value="enCurso">En Curso</option>
+                            <option value="enCurso">En Préstamo</option>
                             <option value="devuelto">Devuelto</option>
                             <option value="atrasado">Atrasado</option>
                         </select>
                     </div>
                 </div>
                 <div className="mt-4 flex justify-end">
-                    <button onClick={handleGenerateReport} className="px-6 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+                    <button onClick={() => handleGenerateReport(1)} className="px-6 py-2 font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                         {loading ? 'Generando...' : 'Generar Reporte'}
                     </button>
                 </div>
@@ -180,19 +190,41 @@ const ReportsPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{loan.itemDetails?.name || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{new Date(loan.fechaInicio).toLocaleDateString('es-CL')}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{new Date(loan.fechaVencimiento).toLocaleDateString('es-CL')}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${loan.estado === 'atrasado' ? 'bg-red-100 text-red-800' : loan.estado === 'devuelto' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{loan.estado}</span></td>
+                                    <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${loan.estado === 'atrasado' ? 'bg-red-100 text-red-800' : loan.estado === 'devuelto' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{loan.estado === 'enCurso' ? 'En Préstamo' : loan.estado}</span></td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
                                 <td colSpan="5" className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                                    {error || "Aplica los filtros y presiona 'Generar Reporte' para ver los resultados."}
+                                    { "Aplica los filtros y presiona 'Generar Reporte' para ver los resultados."}
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-end mt-4 text-sm">
+                    <button
+                        onClick={() => handleGenerateReport(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 mr-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <span className="text-gray-700 dark:text-gray-300">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <button
+                        onClick={() => handleGenerateReport(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 ml-2 text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

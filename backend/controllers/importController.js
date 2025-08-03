@@ -155,7 +155,8 @@ exports.importBooks = async (req, res) => {
     }
 };
 
-// --- IMPORTAR RECURSOS (VERSIÓN CORREGIDA) ---
+// --- INICIO DE LA MODIFICACIÓN ---
+// Se refactoriza la importación de recursos para que sea automática
 exports.importResources = async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ msg: 'No se ha subido ningún archivo.' });
@@ -176,15 +177,15 @@ exports.importResources = async (req, res) => {
 
         for (const [index, row] of data.entries()) {
             try {
-                if (!row.nombre || !row.categoria || !row.sede || !row.codigoInternoBase) {
-                    throw new Error("Faltan campos obligatorios (nombre, categoria, sede, codigoInternoBase).");
+                // Ya no requerimos 'codigoInternoBase'
+                if (!row.nombre || !row.categoria || !row.sede) {
+                    throw new Error("Faltan campos obligatorios (nombre, categoria, sede).");
                 }
 
                 const resourceData = {
                     nombre: row.nombre,
                     categoria: row.categoria,
                     sede: row.sede,
-                    codigoInternoBase: row.codigoInternoBase, // <-- LÍNEA AÑADIDA Y CORREGIDA
                     descripcion: row.descripcion,
                     ubicacion: row.ubicacion
                 };
@@ -195,9 +196,16 @@ exports.importResources = async (req, res) => {
 
                 const cantidadInstancias = parseInt(row.cantidadInstancias) || 1;
                 if (cantidadInstancias > 0) {
+                    // Misma lógica de generación de código que en createResource
+                    const sedePrefix = savedResource.sede === 'Basica' ? 'RBB' : 'RBM';
+                    const lastInstanceCount = await ResourceInstance.countDocuments({
+                        codigoInterno: { $regex: `^${sedePrefix}` }
+                    });
+                    
                     const instances = [];
                     for (let i = 1; i <= cantidadInstancias; i++) {
-                        const codigoInterno = `${row.codigoInternoBase}-${i}`;
+                        const sequentialNumber = (lastInstanceCount + i).toString().padStart(3, '0');
+                        const codigoInterno = `${sedePrefix}-${sequentialNumber}`;
                         instances.push({
                             resourceId: savedResource._id,
                             codigoInterno: codigoInterno,
@@ -208,7 +216,7 @@ exports.importResources = async (req, res) => {
                 }
             } catch (error) {
                 const errorMessage = error.code === 11000 
-                    ? 'El código interno base ya existe.' 
+                    ? 'Error de duplicado al generar código interno.' 
                     : error.message;
                 errors.push(`Fila ${index + 2}: ${errorMessage}`);
             }
@@ -226,3 +234,4 @@ exports.importResources = async (req, res) => {
         res.status(500).json({ msg: 'Error en el servidor al procesar el archivo.', details: error.message });
     }
 };
+// --- FIN DE LA MODIFICACIÓN ---
