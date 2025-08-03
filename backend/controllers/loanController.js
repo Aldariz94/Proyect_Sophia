@@ -3,32 +3,34 @@ const Loan = require('../models/Loan');
 const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
 const ResourceInstance = require('../models/ResourceInstance');
-const Reservation = require('../models/Reservation');
 const { addBusinessDays } = require('../utils/dateUtils');
+const { checkBorrowingLimits } = require('../utils/validationUtils'); // <-- Se importa el nuevo ayudante
 
 exports.createLoan = async (req, res) => {
     const { usuarioId, itemId, itemModel } = req.body;
+
     if (!mongoose.Types.ObjectId.isValid(usuarioId) || !mongoose.Types.ObjectId.isValid(itemId)) {
         return res.status(400).json({ msg: 'ID de usuario o de ítem no válido.' });
     }
+
     try {
         const user = await User.findById(usuarioId);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado.' });
         if (user.sancionHasta && new Date(user.sancionHasta) > new Date()) {
             return res.status(403).json({ msg: `Usuario sancionado hasta ${user.sancionHasta.toLocaleDateString()}`});
         }
-        if (user.rol !== 'profesor') {
-            const activeLoansCount = await Loan.countDocuments({ usuarioId, estado: 'enCurso' });
-            const activeReservationsCount = await Reservation.countDocuments({ usuarioId, estado: 'pendiente' });
-            if ((activeLoansCount + activeReservationsCount) >= 1) {
-                return res.status(403).json({ msg: 'El usuario ya ha alcanzado el límite de 1 ítem (entre préstamos y reservas activas).' });
-            }
+        
+        const validation = await checkBorrowingLimits(user, { itemId, itemModel });
+        if (!validation.valid) {
+            return res.status(403).json({ msg: validation.message });
         }
+        
         const ItemModel = itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
         const item = await ItemModel.findById(itemId);
         if (!item || item.estado !== 'disponible') {
             return res.status(400).json({ msg: 'El ítem no está disponible para préstamo.' });
         }
+
         let fechaVencimiento;
         if (itemModel === 'Exemplar') {
             fechaVencimiento = addBusinessDays(new Date(), 10);
@@ -43,6 +45,7 @@ exports.createLoan = async (req, res) => {
                 fechaVencimiento = deadlineHoy;
             }
         }
+
         const newLoan = new Loan({ usuarioId, item: itemId, itemModel, fechaVencimiento });
         await newLoan.save();
         item.estado = 'prestado';

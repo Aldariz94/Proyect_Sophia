@@ -4,75 +4,45 @@ const User = require('../models/User');
 const Exemplar = require('../models/Exemplar');
 const ResourceInstance = require('../models/ResourceInstance');
 const Loan = require('../models/Loan');
+const { addBusinessDays } = require('../utils/dateUtils');
+const { checkBorrowingLimits } = require('../utils/validationUtils'); // <-- Se importa el nuevo ayudante
 
-// Función para calcular días hábiles
-function addBusinessDays(startDate, days) {
-    let currentDate = new Date(startDate);
-    let addedDays = 0;
-    while (addedDays < days) {
-        currentDate.setDate(currentDate.getDate() + 1);
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Domingo, 6 = Sábado
-            addedDays++;
-        }
-    }
-    return currentDate;
-}
-
-// Crear una nueva reserva
 exports.createReservation = async (req, res) => {
     const { usuarioId, itemId, itemModel } = req.body;
-    // Si un admin envía un usuarioId, se usa ese. Si no, se usa el del usuario logueado.
     const finalUserId = (req.user.rol === 'admin' && usuarioId) ? usuarioId : req.user.id;
 
-        // ==================================================
-    // =====> AÑADE ESTA VALIDACIÓN AQUÍ <=====
-    // ==================================================
     if (!mongoose.Types.ObjectId.isValid(finalUserId) || !mongoose.Types.ObjectId.isValid(itemId)) {
         return res.status(400).json({ msg: 'ID de usuario o de ítem no válido.' });
     }
-    // ==================================================
-
-
     try {
         const user = await User.findById(finalUserId);
-        if (!user) {
-            return res.status(404).json({ msg: 'Usuario no encontrado.' });
-        }
+        if (!user) return res.status(404).json({ msg: 'Usuario no encontrado.' });
         if (user.sancionHasta && new Date(user.sancionHasta) > new Date()) {
             return res.status(403).json({ msg: `Usuario sancionado hasta ${user.sancionHasta.toLocaleDateString()}`});
         }
-
-
-        const activeLoans = await Loan.find({ usuarioId: finalUserId, estado: 'enCurso' }).countDocuments();
-        if (user.rol !== 'profesor' && activeLoans >= 1) {
-            return res.status(403).json({ msg: 'Ya tienes un préstamo activo. No puedes reservar otro ítem hasta que lo devuelvas.' });
+        
+        const validation = await checkBorrowingLimits(user, { itemId, itemModel });
+        if (!validation.valid) {
+            return res.status(403).json({ msg: validation.message });
         }
-  
 
         const ItemModel = itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
         const item = await ItemModel.findById(itemId);
-
         if (!item || item.estado !== 'disponible') {
             return res.status(400).json({ msg: 'Este ítem no está disponible para reservar en este momento.' });
         }
-        
         const expiraEn = addBusinessDays(new Date(), 2);
-
         const newReservation = new Reservation({
             usuarioId: finalUserId,
             item: itemId,
             itemModel,
-            expiraEn
+            expiraEn,
+            estado: 'pendiente'
         });
-
         item.estado = 'reservado';
         await item.save();
-        
         await newReservation.save();
-
-        res.status(201).json({ msg: 'Reserva creada exitosamente. El usuario tiene 2 días hábiles para retirar el ítem.', reservation: newReservation });
-
+        res.status(201).json({ msg: 'Reserva creada exitosamente. Tiene 2 días hábiles para retirar el ítem.', reservation: newReservation });
     } catch (err) {
         console.error("Error al crear la reserva:", err.message);
         res.status(500).send('Error del servidor');
