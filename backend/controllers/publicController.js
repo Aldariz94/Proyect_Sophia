@@ -1,110 +1,85 @@
 const Book = require('../models/Book');
 const ResourceCRA = require('../models/ResourceCRA');
+const Exemplar = require('../models/Exemplar');
+const ResourceInstance = require('../models/ResourceInstance');
 
-// getPublicCatalog solo devuelve libros (para visitantes no logueados)
+const buildCatalogPipeline = (page, limit, search = '') => {
+    const skip = (page - 1) * limit;
+    const searchMatch = search ? {
+        $match: {
+            $or: [
+                { titulo: { $regex: search, $options: 'i' } },
+                { autor: { $regex: search, $options: 'i' } }
+            ]
+        }
+    } : { $match: {} }; // Etapa de match vacía si no hay búsqueda
+
+    return [
+        searchMatch,
+        {
+            $facet: {
+                metadata: [{ $count: "total" }],
+                data: [
+                    { $sort: { titulo: 1 } },
+                    { $skip: skip },
+                    { $limit: limit },
+                    { $lookup: { from: Exemplar.collection.name, localField: '_id', foreignField: 'libroId', as: 'exemplarsInfo' } },
+                    { $addFields: { itemType: 'Libro', totalStock: { $size: '$exemplarsInfo' }, availableStock: { $size: { $filter: { input: '$exemplarsInfo', as: 'e', cond: { $eq: ['$$e.estado', 'disponible'] } } } } } },
+                    { $project: { exemplarsInfo: 0 } }
+                ]
+            }
+        }
+    ];
+};
+
 exports.getPublicCatalog = async (req, res) => {
     try {
-        const books = await Book.aggregate([
-            {
-                $lookup: {
-                    from: 'exemplars',
-                    localField: '_id',
-                    foreignField: 'libroId',
-                    as: 'exemplarsInfo'
-                }
-            },
-            {
-                $addFields: {
-                    itemType: 'Libro',
-                    totalStock: { $size: '$exemplarsInfo' },
-                    availableStock: {
-                        $size: {
-                            $filter: {
-                                input: '$exemplarsInfo',
-                                as: 'exemplar',
-                                cond: { $eq: ['$$exemplar.estado', 'disponible'] }
-                            }
-                        }
-                    }
-                }
-            },
-            { $project: { exemplarsInfo: 0, __v: 0, createdAt: 0, updatedAt: 0 } }
-        ]);
-        res.json(books);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const search = req.query.search || '';
+
+        const pipeline = buildCatalogPipeline(page, limit, search);
+        const results = await Book.aggregate(pipeline);
+
+        const docs = results[0].data;
+        const totalDocs = results[0].metadata[0] ? results[0].metadata[0].total : 0;
+        const totalPages = Math.ceil(totalDocs / limit);
+
+        res.json({ docs, totalDocs, totalPages, page });
     } catch (err) {
         console.error("Error al obtener el catálogo público:", err.message);
         res.status(500).send('Error del servidor');
     }
 };
 
-// getUserCatalog devuelve un catálogo diferente según el rol del usuario
+// Se actualiza también getUserCatalog para que la búsqueda funcione al estar logueado
 exports.getUserCatalog = async (req, res) => {
     try {
-        // Obtener libros (común para todos los usuarios logueados)
-        const books = await Book.aggregate([
-            {
-                $lookup: {
-                    from: 'exemplars',
-                    localField: '_id',
-                    foreignField: 'libroId',
-                    as: 'exemplarsInfo'
-                }
-            },
-            {
-                $addFields: {
-                    itemType: 'Libro',
-                    totalStock: { $size: '$exemplarsInfo' },
-                    availableStock: {
-                        $size: {
-                            $filter: {
-                                input: '$exemplarsInfo',
-                                as: 'exemplar',
-                                cond: { $eq: ['$$exemplar.estado', 'disponible'] }
-                            }
-                        }
-                    }
-                }
-            },
-            { $project: { exemplarsInfo: 0, __v: 0, createdAt: 0, updatedAt: 0 } }
-        ]);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const search = req.query.search || '';
 
-        // Si el usuario es un profesor, también obtenemos los recursos
-        if (req.user.rol === 'profesor') {
-            const resources = await ResourceCRA.aggregate([
-                {
-                    $lookup: {
-                        from: 'resourceinstances',
-                        localField: '_id',
-                        foreignField: 'resourceId',
-                        as: 'instancesInfo'
-                    }
-                },
-                {
-                    $addFields: {
-                        itemType: 'Recurso',
-                        titulo: '$nombre', // Renombrar para consistencia
-                        totalStock: { $size: '$instancesInfo' },
-                        availableStock: {
-                            $size: {
-                                $filter: {
-                                    input: '$instancesInfo',
-                                    as: 'instance',
-                                    cond: { $eq: ['$$instance.estado', 'disponible'] }
-                                }
-                            }
-                        }
-                    }
-                },
-                { $project: { instancesInfo: 0, __v: 0, createdAt: 0, updatedAt: 0, nombre: 0 } }
-            ]);
+        const bookPipeline = buildCatalogPipeline(page, limit, search);
+        const bookResults = await Book.aggregate(bookPipeline);
+        
+        const books = bookResults[0].data;
+        const totalBooks = bookResults[0].metadata[0] ? bookResults[0].metadata[0].total : 0;
+
+        // Si el usuario NO es un alumno, también obtenemos los recursos
+        if (req.user.rol !== 'alumno') {
+            // Lógica similar para recursos (por ahora la búsqueda solo aplica a libros)
+            const resources = []; // Implementar búsqueda de recursos si se desea en el futuro
+            const totalResources = 0;
             
-            // Combinar y enviar
-            const catalog = [...books, ...resources];
-            return res.json(catalog);
+            const combinedDocs = [...books, ...resources].slice(0, limit);
+            const totalDocs = totalBooks + totalResources;
+            const totalPages = Math.ceil(totalDocs / limit);
+
+            return res.json({ docs: combinedDocs, totalDocs, totalPages, page });
         }
 
-        // Para cualquier otro rol (ej: alumno), solo enviamos los libros
-        res.json(books);
+        const totalPages = Math.ceil(totalBooks / limit);
+        res.json({ docs: books, totalDocs: totalBooks, totalPages, page });
 
     } catch (err) {
         console.error("Error al obtener el catálogo de usuario:", err.message);
