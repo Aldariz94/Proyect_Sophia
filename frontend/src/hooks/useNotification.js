@@ -11,7 +11,7 @@ export const useNotification = () => {
         setNotification({ message, type, isOpen: true });
         setTimeout(() => {
             setNotification(prev => ({ ...prev, isOpen: false }));
-        }, 3000);
+        }, 10000);
     }, []);
 
     return { notification, showNotification };

@@ -1,40 +1,37 @@
-// frontend/src/pages/LoanManagementPage.js
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react'; // <-- 1. Se añade useCallback
 import api from '../services/api';
 import { Modal, CreateLoanForm, RenewLoanForm, ReturnLoanForm, Notification } from '../components';
 import { useNotification } from '../hooks';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
-
 const LoanManagementPage = () => {
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
     const [renewingLoanId, setRenewingLoanId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const { notification, showNotification } = useNotification();
-    
-    // Nuevos estados para el modal de devolución
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [returningLoan, setReturningLoan] = useState(null);
+    const { notification, showNotification } = useNotification();
 
-    const fetchLoans = async () => {
+    // 2. Se envuelve la función en useCallback
+    const fetchLoans = useCallback(async () => {
         try {
             setLoading(true);
             const response = await api.get('/loans');
             setLoans(response.data);
         } catch (err) {
-            setError('No se pudo cargar el historial de préstamos.');
+            showNotification('No se pudo cargar el historial de préstamos.', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [showNotification]); // Su dependencia es showNotification
 
+    // 3. Se añade fetchLoans al array de dependencias
     useEffect(() => {
         fetchLoans();
-    }, []);
+    }, [fetchLoans]);
 
     const filteredLoans = useMemo(() => {
         if (!searchTerm) return loans;
@@ -42,7 +39,13 @@ const LoanManagementPage = () => {
         return loans.filter(loan => {
             const userName = `${loan.usuarioId?.primerNombre} ${loan.usuarioId?.primerApellido}`.toLowerCase();
             const itemName = (loan.itemDetails?.titulo || loan.itemDetails?.nombre || '').toLowerCase();
-            return userName.includes(lowerCaseSearch) || itemName.includes(lowerCaseSearch) || loan.estado.includes(lowerCaseSearch);
+            
+            let statusText = loan.estado;
+            if (loan.estado === 'enCurso') statusText = 'en préstamo';
+
+            return userName.includes(lowerCaseSearch) || 
+                   itemName.includes(lowerCaseSearch) || 
+                   statusText.includes(lowerCaseSearch);
         });
     }, [loans, searchTerm]);
 
@@ -74,17 +77,15 @@ const LoanManagementPage = () => {
         }
     };
 
-    // Abre el modal de devolución
     const handleOpenReturnModal = (loan) => {
         setReturningLoan(loan);
         setIsReturnModalOpen(true);
     };
 
-    // Envía la devolución con el nuevo estado del ítem
-    const handleReturnLoan = async ({ newStatus }) => {
+    const handleReturnLoan = async (payload) => {
         if (!returningLoan) return;
         try {
-            await api.post(`/loans/return/${returningLoan._id}`, { newStatus });
+            await api.post(`/loans/return/${returningLoan._id}`, payload);
             setIsReturnModalOpen(false);
             setReturningLoan(null);
             fetchLoans();
@@ -95,11 +96,10 @@ const LoanManagementPage = () => {
     };
 
     if (loading) return <div className="text-gray-800 dark:text-gray-200">Cargando préstamos...</div>;
-    if (error) return <div className="text-red-500">{error}</div>;
 
     return (
         <div>
-        <Notification {...notification} />
+            <Notification {...notification} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Préstamos</h1>
                 <div className="flex items-center gap-4">
@@ -142,11 +142,11 @@ const LoanManagementPage = () => {
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{loan.itemDetails?.titulo || loan.itemDetails?.nombre || 'N/A'}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{new Date(loan.fechaVencimiento).toLocaleDateString('es-CL')}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${
                                         loan.estado === 'atrasado' ? 'bg-red-100 text-red-800' : 
                                         loan.estado === 'devuelto' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                                     }`}>
-                                        {loan.estado}
+                                        {loan.estado === 'enCurso' ? 'En Préstamo' : loan.estado}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">

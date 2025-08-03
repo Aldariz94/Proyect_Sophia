@@ -8,18 +8,15 @@ const { addBusinessDays } = require('../utils/dateUtils');
 
 exports.createLoan = async (req, res) => {
     const { usuarioId, itemId, itemModel } = req.body;
-
     if (!mongoose.Types.ObjectId.isValid(usuarioId) || !mongoose.Types.ObjectId.isValid(itemId)) {
         return res.status(400).json({ msg: 'ID de usuario o de ítem no válido.' });
     }
-
     try {
         const user = await User.findById(usuarioId);
         if (!user) return res.status(404).json({ msg: 'Usuario no encontrado.' });
         if (user.sancionHasta && new Date(user.sancionHasta) > new Date()) {
             return res.status(403).json({ msg: `Usuario sancionado hasta ${user.sancionHasta.toLocaleDateString()}`});
         }
-        
         if (user.rol !== 'profesor') {
             const activeLoansCount = await Loan.countDocuments({ usuarioId, estado: 'enCurso' });
             const activeReservationsCount = await Reservation.countDocuments({ usuarioId, estado: 'pendiente' });
@@ -27,21 +24,25 @@ exports.createLoan = async (req, res) => {
                 return res.status(403).json({ msg: 'El usuario ya ha alcanzado el límite de 1 ítem (entre préstamos y reservas activas).' });
             }
         }
-        
         const ItemModel = itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
         const item = await ItemModel.findById(itemId);
         if (!item || item.estado !== 'disponible') {
             return res.status(400).json({ msg: 'El ítem no está disponible para préstamo.' });
         }
-
         let fechaVencimiento;
         if (itemModel === 'Exemplar') {
             fechaVencimiento = addBusinessDays(new Date(), 10);
         } else {
-            fechaVencimiento = new Date();
-            fechaVencimiento.setHours(17, 0, 0, 0);
+            const ahora = new Date();
+            const deadlineHoy = new Date();
+            deadlineHoy.setHours(17, 0, 0, 0);
+            if (ahora > deadlineHoy) {
+                fechaVencimiento = addBusinessDays(new Date(), 1);
+                fechaVencimiento.setHours(17, 0, 0, 0);
+            } else {
+                fechaVencimiento = deadlineHoy;
+            }
         }
-
         const newLoan = new Loan({ usuarioId, item: itemId, itemModel, fechaVencimiento });
         await newLoan.save();
         item.estado = 'prestado';
@@ -72,8 +73,8 @@ exports.returnLoan = async (req, res) => {
         const fechaDevolucion = new Date();
         loan.fechaDevolucion = fechaDevolucion;
 
+        // Se comprueba si hubo atraso para aplicar la sanción
         if (fechaDevolucion > new Date(loan.fechaVencimiento)) {
-            loan.estado = 'atrasado';
             const user = await User.findById(loan.usuarioId);
             if (user) {
                 const diasAtraso = Math.ceil((fechaDevolucion - new Date(loan.fechaVencimiento)) / (1000 * 60 * 60 * 24));
@@ -82,9 +83,13 @@ exports.returnLoan = async (req, res) => {
                 user.sancionHasta = sancionHasta;
                 await user.save();
             }
-        } else {
-            loan.estado = 'devuelto';
         }
+
+        // --- INICIO DE LA CORRECCIÓN ---
+        // Independientemente de si hubo atraso o no, el estado final del préstamo ahora es 'devuelto'.
+        loan.estado = 'devuelto';
+        // --- FIN DE LA CORRECCIÓN ---
+
         await loan.save();
         
         const ItemModel = loan.itemModel === 'Exemplar' ? Exemplar : ResourceInstance;
