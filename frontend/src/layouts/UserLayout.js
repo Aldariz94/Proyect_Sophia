@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { UserSidebar, MobileSidebar, Footer } from "../components";
 import { Bars3Icon } from "@heroicons/react/24/outline";
-import { CatalogPage, MyLoansPage, MyReservationsPage } from "../pages";
+import { CatalogPage, MyLoansPage, MyReservationsPage, ReportsPage } from "../pages";
 
 
 const UserLayout = () => {
@@ -17,11 +17,15 @@ const UserLayout = () => {
     switch (currentPage) {
       case "my-loans":
         return <MyLoansPage />;
-      case "my-reservations": // <-- CASO NUEVO
+      case "my-reservations":
         return <MyReservationsPage />;
-      case "catalog":
+      case "reports": // Se añade el caso para reportes
+        return <ReportsPage />;
+      case "catalog-resources": // Se añade el caso para catálogo de recursos
+        return <CatalogPage isUserView={true} itemType="resource" />;
+      case "catalog-books": // Se modifica el caso por defecto
       default:
-        return <CatalogPage isUserView={true} />;
+        return <CatalogPage isUserView={true} itemType="book" />;
     }
   };
 

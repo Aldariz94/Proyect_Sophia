@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { getPublicCatalog, getUserCatalog } = require('../controllers/publicController');
-const authMiddleware = require('../middleware/authMiddleware'); // <-- LÍNEA AÑADIDA
+const { getPublicCatalog, getUserBookCatalog, getUserResourceCatalog } = require('../controllers/publicController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-// Ruta pública existente
+// Ruta pública para visitantes
 router.get('/catalog', getPublicCatalog);
 
-// --- NUEVA RUTA ---
-// Esta ruta requiere estar logueado, pero no un rol específico
-router.get('/user-catalog', authMiddleware, getUserCatalog);
+// Nuevas rutas para usuarios logueados
+router.get('/user-catalog/books', authMiddleware, getUserBookCatalog);
+router.get('/user-catalog/resources', authMiddleware, getUserResourceCatalog);
 
 module.exports = router;

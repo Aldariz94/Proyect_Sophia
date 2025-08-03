@@ -3,15 +3,13 @@ import api from '../services/api';
 import { useAuth, useNotification } from '../hooks';
 import { Notification } from '../components';
 
-const CatalogPage = ({ isUserView = false }) => {
+const CatalogPage = ({ isUserView = false, itemType = 'book' }) => {
     const [catalog, setCatalog] = useState([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const { notification, showNotification } = useNotification();
     
-    // Estado para el texto que el usuario escribe en tiempo real
     const [searchTerm, setSearchTerm] = useState('');
-    // Estado para el término de búsqueda que se enviará a la API (con retraso)
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -20,12 +18,20 @@ const CatalogPage = ({ isUserView = false }) => {
     const fetchCatalog = useCallback(async (page, search) => {
         setLoading(true);
         try {
-            const params = new URLSearchParams({ page, limit: 20 }); // Mantenemos el límite en 20
+            const params = new URLSearchParams({
+                page,
+                limit: 16, // Usamos el límite de 16 que habías pedido
+            });
             if (search) {
                 params.append('search', search);
             }
 
-            const endpoint = isUserView ? '/public/user-catalog' : '/public/catalog';
+            // --- Lógica de Endpoint Dinámica ---
+            let endpoint = '/public/catalog'; // Por defecto, el catálogo público de libros
+            if (isUserView) {
+                endpoint = itemType === 'book' ? '/public/user-catalog/books' : '/public/user-catalog/resources';
+            }
+            
             const response = await api.get(`${endpoint}?${params.toString()}`);
             
             setCatalog(response.data.docs);
@@ -36,28 +42,24 @@ const CatalogPage = ({ isUserView = false }) => {
         } finally {
             setLoading(false);
         }
-    }, [isUserView, showNotification]);
+    }, [isUserView, itemType, showNotification]);
 
-    // --- LÓGICA DE BÚSQUEDA Y PAGINACIÓN CORREGIDA ---
-
-    // Efecto #1: Se encarga del "debounce".
-    // Espera 500ms después de que el usuario deja de escribir para actualizar el término de búsqueda final.
+    // Efecto para aplicar "debounce" a la búsqueda (espera a que el usuario deje de escribir)
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDebouncedSearchTerm(searchTerm);
-            // Al realizar una nueva búsqueda, siempre volvemos a la página 1.
-            setCurrentPage(1);
+            if (searchTerm !== debouncedSearchTerm) {
+                setCurrentPage(1);
+                setDebouncedSearchTerm(searchTerm);
+            }
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [searchTerm]);
+    }, [searchTerm, debouncedSearchTerm, currentPage]);
 
-    // Efecto #2: Se encarga de llamar a la API.
-    // Se activa solo cuando la página o el término de búsqueda final (debounced) cambian.
+    // Efecto principal para buscar datos en la API
     useEffect(() => {
         fetchCatalog(currentPage, debouncedSearchTerm);
     }, [currentPage, debouncedSearchTerm, fetchCatalog]);
-
 
     const handleReserve = async (item) => {
         if (!user) {
@@ -73,9 +75,12 @@ const CatalogPage = ({ isUserView = false }) => {
                 const res = await api.get(`/search/find-available-copy/${itemTypeForAPI}/${item._id}`);
                 const { copyId } = res.data;
 
-                await api.post('/reservations', { itemId: copyId, itemModel: itemModelForDB });
+                await api.post('/reservations', {
+                    itemId: copyId,
+                    itemModel: itemModelForDB
+                });
+
                 showNotification(`¡Has reservado "${item.titulo}" exitosamente!`);
-                // Refresca la página actual para actualizar el stock
                 fetchCatalog(currentPage, debouncedSearchTerm);
             } catch (err) {
                 showNotification(err.response?.data?.msg || "No se pudo completar la reserva.", "error");
@@ -89,7 +94,7 @@ const CatalogPage = ({ isUserView = false }) => {
             <div className="mb-8">
                 <input
                     type="text"
-                    placeholder="Buscar por título o autor..."
+                    placeholder={itemType === 'book' ? "Buscar por título o autor..." : "Buscar por nombre del recurso..."}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
@@ -98,8 +103,7 @@ const CatalogPage = ({ isUserView = false }) => {
 
             {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-pulse">
-                    {/* Se ajusta el número de skeletons al límite por página */}
-                    {Array.from({ length: 20 }).map((_, i) => (
+                    {Array.from({ length: 16 }).map((_, i) => (
                         <div key={i} className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
                     ))}
                 </div>
@@ -157,7 +161,7 @@ const CatalogPage = ({ isUserView = false }) => {
                                 disabled={currentPage === totalPages}
                                 className="px-4 py-2 mx-1 font-medium text-gray-700 bg-gray-200 rounded-md dark:bg-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Siguientes
+                                Siguiente
                             </button>
                         </div>
                     )}
