@@ -53,8 +53,22 @@ exports.getResources = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const search = req.query.search || '';
+
+        let query = {};
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            query = {
+                $or: [
+                    { nombre: searchRegex },
+                    { categoria: searchRegex },
+                    { sede: searchRegex }
+                ]
+            };
+        }
 
         const results = await ResourceCRA.aggregate([
+            { $match: query },
             {
                 $facet: {
                     metadata: [{ $count: "total" }],
@@ -64,7 +78,7 @@ exports.getResources = async (req, res) => {
                         { $limit: limit },
                         {
                             $lookup: {
-                                from: ResourceInstance.collection.name,
+                                from: 'resourceinstances',
                                 localField: '_id',
                                 foreignField: 'resourceId',
                                 as: 'instancesInfo'
