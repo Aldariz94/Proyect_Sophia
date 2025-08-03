@@ -7,51 +7,56 @@ import { useNotification } from '../hooks';
 const UserManagementPage = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [viewingUser, setViewingUser] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const { notification, showNotification } = useNotification();
 
-    // Estados para la paginación
+    // Estados para búsqueda y paginación
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
 
-    // Estados para el modal de eliminación
+    // Estado para el modal de eliminación
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingUser, setDeletingUser] = useState(null);
 
-    const fetchUsers = useCallback(async (page) => {
+    const fetchUsers = useCallback(async (page, search) => {
         try {
             setLoading(true);
-            const response = await api.get(`/users?page=${page}&limit=10`);
+            const params = new URLSearchParams({ page, limit: 10 });
+            if (search) {
+                params.append('search', search);
+            }
+            const response = await api.get(`/users?${params.toString()}`);
             setUsers(response.data.docs);
             setTotalPages(response.data.totalPages);
             setCurrentPage(response.data.page);
         } catch (err) {
-            setError('No se pudo cargar la lista de usuarios.');
             showNotification('No se pudo cargar la lista de usuarios.', 'error');
         } finally {
             setLoading(false);
         }
     }, [showNotification]);
 
+    // Efecto para el "debounce" de la búsqueda
     useEffect(() => {
-        fetchUsers(currentPage);
-    }, [currentPage, fetchUsers]);
+        const timer = setTimeout(() => {
+            if (searchTerm !== debouncedSearchTerm) {
+                setCurrentPage(1);
+                setDebouncedSearchTerm(searchTerm);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, debouncedSearchTerm]);
 
-    const filteredUsers = useMemo(() => {
-        if (!searchTerm) return users;
-        const lowerCaseSearch = searchTerm.toLowerCase();
-        return users.filter(user =>
-            Object.values(user).some(val =>
-                String(val).toLowerCase().includes(lowerCaseSearch)
-            )
-        );
-    }, [users, searchTerm]);
+    // Efecto para llamar a la API cuando cambia la página o la búsqueda
+    useEffect(() => {
+        fetchUsers(currentPage, debouncedSearchTerm);
+    }, [currentPage, debouncedSearchTerm, fetchUsers]);
 
     const handleOpenCreateModal = () => {
         setEditingUser(null);
@@ -87,7 +92,7 @@ const UserManagementPage = () => {
                 showNotification('Usuario creado exitosamente.');
             }
             handleCloseModals();
-            fetchUsers(currentPage);
+            fetchUsers(currentPage, debouncedSearchTerm);
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al guardar el usuario.', 'error');
         }
@@ -104,9 +109,9 @@ const UserManagementPage = () => {
             await api.delete(`/users/${deletingUser._id}`);
             showNotification('Usuario eliminado exitosamente.');
             if (users.length === 1 && currentPage > 1) {
-                fetchUsers(currentPage - 1);
+                fetchUsers(currentPage - 1, debouncedSearchTerm);
             } else {
-                fetchUsers(currentPage);
+                fetchUsers(currentPage, debouncedSearchTerm);
             }
         } catch (err) {
             showNotification(err.response?.data?.msg || 'Error al eliminar el usuario.', 'error');
@@ -114,16 +119,14 @@ const UserManagementPage = () => {
             handleCloseModals();
         }
     };
-
-    if (error) return <div className="text-red-500">{error}</div>;
-
+    
     return (
         <div>
             <Notification {...notification} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Usuarios</h1>
                 <div className="flex items-center gap-4">
-                    <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                    <input type="text" placeholder="Buscar por nombre, RUT, correo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     <button onClick={() => setIsImportModalOpen(true)} className="flex items-center px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
                         <ArrowUpTrayIcon className="w-5 h-5 mr-2" />
                         Importar
@@ -148,7 +151,7 @@ const UserManagementPage = () => {
                     importType="users" 
                     onImportSuccess={(successMessage) => {
                         setIsImportModalOpen(false);
-                        fetchUsers(1);
+                        fetchUsers(1, ''); // Al importar, volvemos a la página 1 sin búsqueda
                         showNotification(successMessage);
                     }} 
                 />
@@ -189,7 +192,7 @@ const UserManagementPage = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                            {filteredUsers.map(user => (
+                            {users.map(user => (
                                 <tr key={user._id} className="hover:bg-gray-100 dark:hover:bg-gray-600">
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-white">{user.primerNombre} {user.primerApellido}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-300">{user.rut}</td>

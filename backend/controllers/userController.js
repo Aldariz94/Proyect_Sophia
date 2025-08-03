@@ -30,21 +30,35 @@ exports.createUser = async (req, res) => {
     }
 };
 // --- INICIO DE LA MODIFICACIÓN ---
-// La función getUsers ahora maneja la paginación
 exports.getUsers = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const search = req.query.search || '';
 
-        // Obtenemos el conteo total de documentos para calcular el total de páginas
-        const totalUsers = await User.countDocuments();
+        // Construimos el objeto de la consulta de búsqueda
+        let query = {};
+        if (search) {
+            const searchRegex = new RegExp(search, 'i'); // 'i' para no distinguir mayúsculas/minúsculas
+            query = {
+                $or: [
+                    { primerNombre: searchRegex },
+                    { primerApellido: searchRegex },
+                    { rut: searchRegex },
+                    { correo: searchRegex }
+                ]
+            };
+        }
+
+        // Contamos el total de documentos que coinciden con la búsqueda
+        const totalUsers = await User.countDocuments(query);
         const totalPages = Math.ceil(totalUsers / limit);
 
-        // Obtenemos solo los usuarios para la página actual
-        const users = await User.find()
+        // Obtenemos los usuarios para la página actual, aplicando el filtro de búsqueda
+        const users = await User.find(query)
             .select('-hashedPassword')
-            .sort({ createdAt: -1 }) // Ordenamos por fecha de creación
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
