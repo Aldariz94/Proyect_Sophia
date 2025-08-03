@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import api from '../services/api';
 
 const ImportComponent = ({ importType, onImportSuccess }) => {
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
+    const fileInputRef = useRef(null);
 
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
@@ -26,8 +27,10 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setResult(response.data);
+            // Si la importación tuvo éxito (al menos 1 registro),
+            // llamamos a la función del padre con el mensaje de éxito.
             if (response.data.successCount > 0) {
-                onImportSuccess();
+                onImportSuccess(response.data.msg);
             }
         } catch (error) {
             const errorData = error.response?.data;
@@ -38,6 +41,11 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
             }
         } finally {
             setLoading(false);
+            setFile(null);
+            // Forzamos el reseteo del input del archivo para poder subir el mismo archivo de nuevo
+            if (fileInputRef.current) {
+                fileInputRef.current.value = null;
+            }
         }
     };
 
@@ -58,7 +66,7 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
         let requiredFields = '';
         switch (importType) {
             case 'users':
-                requiredFields = 'primerNombre, primerApellido, rut, correo, password, rol.';
+                requiredFields = 'primerNombre, primerApellido, rut, correo, rol.';
                 break;
             case 'books':
                 requiredFields = 'titulo, autor, editorial, lugarPublicacion, añoPublicacion, sede, cantidadEjemplares.';
@@ -95,6 +103,7 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
             </div>
 
             <input 
+                ref={fileInputRef}
                 type="file" 
                 onChange={handleFileChange} 
                 accept=".xlsx, .xls"
@@ -110,8 +119,8 @@ const ImportComponent = ({ importType, onImportSuccess }) => {
             </button>
 
             {result && (
-                <div className={`mt-4 p-4 rounded-md text-sm ${result.errors || result.msg.startsWith('Error') ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-green-100 dark:bg-green-900'}`}>
-                    <p className={`font-semibold ${result.errors || result.msg.startsWith('Error') ? 'text-yellow-800 dark:text-yellow-200' : 'text-green-800 dark:text-green-200'}`}>
+                <div className={`mt-4 p-4 rounded-md text-sm ${result.errors || (result.msg && result.msg.startsWith('Error')) ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-green-100 dark:bg-green-900'}`}>
+                    <p className={`font-semibold ${result.errors || (result.msg && result.msg.startsWith('Error')) ? 'text-yellow-800 dark:text-yellow-200' : 'text-green-800 dark:text-green-200'}`}>
                         {result.msg}
                     </p>
                     {result.errors && (

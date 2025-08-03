@@ -20,6 +20,10 @@ const UserManagementPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
 
+    // Estados para el modal de eliminación
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingUser, setDeletingUser] = useState(null);
+
     const fetchUsers = useCallback(async (page) => {
         try {
             setLoading(true);
@@ -67,8 +71,10 @@ const UserManagementPage = () => {
     const handleCloseModals = () => {
         setIsFormModalOpen(false);
         setIsViewModalOpen(false);
+        setIsDeleteModalOpen(false);
         setEditingUser(null);
         setViewingUser(null);
+        setDeletingUser(null);
     };
 
     const handleSubmit = async (userData) => {
@@ -87,15 +93,25 @@ const UserManagementPage = () => {
         }
     };
 
-    const handleDelete = async (userId) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
-            try {
-                await api.delete(`/users/${userId}`);
-                showNotification('Usuario eliminado exitosamente.');
+    const handleDeleteClick = (user) => {
+        setDeletingUser(user);
+        setIsDeleteModalOpen(true);
+    };
+
+    const executeDelete = async () => {
+        if (!deletingUser) return;
+        try {
+            await api.delete(`/users/${deletingUser._id}`);
+            showNotification('Usuario eliminado exitosamente.');
+            if (users.length === 1 && currentPage > 1) {
+                fetchUsers(currentPage - 1);
+            } else {
                 fetchUsers(currentPage);
-            } catch (err) {
-                showNotification(err.response?.data?.msg || 'Error al eliminar el usuario.', 'error');
             }
+        } catch (err) {
+            showNotification(err.response?.data?.msg || 'Error al eliminar el usuario.', 'error');
+        } finally {
+            handleCloseModals();
         }
     };
 
@@ -128,10 +144,33 @@ const UserManagementPage = () => {
             </Modal>
 
             <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Usuarios desde Excel">
-                <ImportComponent importType="users" onImportSuccess={() => {
-                    setIsImportModalOpen(false);
-                    fetchUsers(1);
-                }} />
+                <ImportComponent 
+                    importType="users" 
+                    onImportSuccess={(successMessage) => {
+                        setIsImportModalOpen(false);
+                        fetchUsers(1);
+                        showNotification(successMessage);
+                    }} 
+                />
+            </Modal>
+
+            <Modal isOpen={isDeleteModalOpen} onClose={handleCloseModals} title="Confirmar Eliminación">
+                <div className="space-y-4">
+                    <p className="dark:text-gray-300">
+                        ¿Estás seguro de que deseas eliminar al usuario <strong className="dark:text-white">{deletingUser?.primerNombre} {deletingUser?.primerApellido}</strong>?
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                        Esta acción es irreversible.
+                    </p>
+                    <div className="flex justify-end pt-4 space-x-2">
+                        <button type="button" onClick={handleCloseModals} className="px-4 py-2 font-medium text-gray-600 bg-gray-200 rounded-md dark:bg-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">
+                            Cancelar
+                        </button>
+                        <button type="button" onClick={executeDelete} className="px-4 py-2 font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                            Sí, Eliminar
+                        </button>
+                    </div>
+                </div>
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
@@ -160,7 +199,7 @@ const UserManagementPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                         <button onClick={() => handleOpenViewModal(user)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
                                         <button onClick={() => handleOpenEditModal(user)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
-                                        <button onClick={() => handleDelete(user._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
+                                        <button onClick={() => handleDeleteClick(user)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
                                     </td>
                                 </tr>
                             ))}

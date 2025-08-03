@@ -16,15 +16,17 @@ const BookManagementPage = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const { notification, showNotification } = useNotification();
 
-    // Nuevos estados para la paginación
+    // Estados para la paginación
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
 
-    // fetchBooks ahora acepta la página a buscar
+    // Estados para el modal de eliminación
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingBook, setDeletingBook] = useState(null);
+
     const fetchBooks = useCallback(async (page) => {
         try {
             setLoading(true);
-            // Enviamos la página y un límite de 10 por página
             const response = await api.get(`/books?page=${page}&limit=10`);
             setBooks(response.data.docs);
             setTotalPages(response.data.totalPages);
@@ -37,12 +39,10 @@ const BookManagementPage = () => {
         }
     }, [showNotification]);
 
-    // useEffect ahora depende de currentPage para recargar los datos al cambiar de página
     useEffect(() => {
         fetchBooks(currentPage);
     }, [currentPage, fetchBooks]);
 
-    // El filtro de búsqueda ahora solo aplica a los datos de la página actual
     const filteredBooks = useMemo(() => {
         if (!searchTerm) return books;
         const lowerCaseSearch = searchTerm.toLowerCase();
@@ -71,11 +71,12 @@ const BookManagementPage = () => {
     const handleCloseModals = () => {
         setIsFormModalOpen(false);
         setIsViewModalOpen(false);
+        setIsDeleteModalOpen(false);
         setEditingBook(null);
         setViewingBook(null);
+        setDeletingBook(null);
     };
 
-    // Al crear/editar, recargamos la página actual para ver el cambio
     const handleSubmit = async (payload) => {
         try {
             if (editingBook) {
@@ -95,16 +96,25 @@ const BookManagementPage = () => {
         }
     };
 
-    // Al eliminar, recargamos la página actual
-    const handleDelete = async (bookId) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este libro y todos sus ejemplares?')) {
-            try {
-                await api.delete(`/books/${bookId}`);
-                showNotification('Libro eliminado exitosamente.');
+    const handleDeleteClick = (book) => {
+        setDeletingBook(book);
+        setIsDeleteModalOpen(true);
+    };
+
+    const executeDelete = async () => {
+        if (!deletingBook) return;
+        try {
+            await api.delete(`/books/${deletingBook._id}`);
+            showNotification('Libro eliminado exitosamente.');
+            if (books.length === 1 && currentPage > 1) {
+                fetchBooks(currentPage - 1);
+            } else {
                 fetchBooks(currentPage);
-            } catch (err) {
-                showNotification(err.response?.data?.msg || 'Error al eliminar el libro.', 'error');
             }
+        } catch (err) {
+            showNotification(err.response?.data?.msg || 'Error al eliminar el libro.', 'error');
+        } finally {
+            handleCloseModals();
         }
     };
 
@@ -137,10 +147,33 @@ const BookManagementPage = () => {
             </Modal>
 
             <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Libros desde Excel">
-                <ImportComponent importType="books" onImportSuccess={() => {
-                    setIsImportModalOpen(false);
-                    fetchBooks(1); // Al importar, volvemos a la página 1
-                }} />
+                <ImportComponent 
+                    importType="books" 
+                    onImportSuccess={(successMessage) => {
+                        setIsImportModalOpen(false);
+                        fetchBooks(1);
+                        showNotification(successMessage);
+                    }} 
+                />
+            </Modal>
+
+            <Modal isOpen={isDeleteModalOpen} onClose={handleCloseModals} title="Confirmar Eliminación">
+                <div className="space-y-4">
+                    <p className="dark:text-gray-300">
+                        ¿Estás seguro de que deseas eliminar el libro <strong className="dark:text-white">"{deletingBook?.titulo}"</strong>?
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                        Esta acción es irreversible y eliminará también todos sus ejemplares.
+                    </p>
+                    <div className="flex justify-end pt-4 space-x-2">
+                        <button type="button" onClick={handleCloseModals} className="px-4 py-2 font-medium text-gray-600 bg-gray-200 rounded-md dark:bg-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">
+                            Cancelar
+                        </button>
+                        <button type="button" onClick={executeDelete} className="px-4 py-2 font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                            Sí, Eliminar
+                        </button>
+                    </div>
+                </div>
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
@@ -167,7 +200,7 @@ const BookManagementPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                         <button onClick={() => handleOpenViewModal(book)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
                                         <button onClick={() => handleOpenEditModal(book)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
-                                        <button onClick={() => handleDelete(book._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
+                                        <button onClick={() => handleDeleteClick(book)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
                                     </td>
                                 </tr>
                             ))}

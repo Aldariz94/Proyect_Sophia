@@ -16,9 +16,11 @@ const ResourceManagementPage = () => {
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const { notification, showNotification } = useNotification();
 
-    // Estados para la paginación
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
+    
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingResource, setDeletingResource] = useState(null);
 
     const fetchResources = useCallback(async (page) => {
         try {
@@ -67,8 +69,10 @@ const ResourceManagementPage = () => {
     const handleCloseModals = () => {
         setIsFormModalOpen(false);
         setIsViewModalOpen(false);
+        setIsDeleteModalOpen(false);
         setEditingResource(null);
         setViewingResource(null);
+        setDeletingResource(null);
     };
 
     const handleSubmit = async (payload) => {
@@ -93,15 +97,25 @@ const ResourceManagementPage = () => {
         }
     };
 
-    const handleDelete = async (resourceId) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este recurso y todas sus instancias?')) {
-            try {
-                await api.delete(`/resources/${resourceId}`);
-                showNotification('Recurso eliminado exitosamente.');
+    const handleDeleteClick = (resource) => {
+        setDeletingResource(resource);
+        setIsDeleteModalOpen(true);
+    };
+
+    const executeDelete = async () => {
+        if (!deletingResource) return;
+        try {
+            await api.delete(`/resources/${deletingResource._id}`);
+            showNotification('Recurso eliminado exitosamente.');
+            if (resources.length === 1 && currentPage > 1) {
+                fetchResources(currentPage - 1);
+            } else {
                 fetchResources(currentPage);
-            } catch (err) {
-                showNotification(err.response?.data?.msg || 'Error al eliminar el recurso.', 'error');
             }
+        } catch (err) {
+            showNotification(err.response?.data?.msg || 'Error al eliminar el recurso.', 'error');
+        } finally {
+            handleCloseModals();
         }
     };
 
@@ -133,11 +147,34 @@ const ResourceManagementPage = () => {
                 <ResourceDetails resource={viewingResource} />
             </Modal>
 
-           <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Recursos desde Excel">
-                <ImportComponent importType="resources" onImportSuccess={() => {
-                    setIsImportModalOpen(false);
-                    fetchResources(1); // Al importar, volvemos a la página 1
-                }} />
+            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Recursos desde Excel">
+                <ImportComponent 
+                    importType="resources" 
+                    onImportSuccess={(successMessage) => {
+                        setIsImportModalOpen(false);
+                        fetchResources(1);
+                        showNotification(successMessage);
+                    }} 
+                />
+            </Modal>
+            
+            <Modal isOpen={isDeleteModalOpen} onClose={handleCloseModals} title="Confirmar Eliminación">
+                <div className="space-y-4">
+                    <p className="dark:text-gray-300">
+                        ¿Estás seguro de que deseas eliminar el recurso <strong className="dark:text-white">"{deletingResource?.nombre}"</strong>?
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                        Esta acción es irreversible y eliminará también todas sus instancias.
+                    </p>
+                    <div className="flex justify-end pt-4 space-x-2">
+                        <button type="button" onClick={handleCloseModals} className="px-4 py-2 font-medium text-gray-600 bg-gray-200 rounded-md dark:bg-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">
+                            Cancelar
+                        </button>
+                        <button type="button" onClick={executeDelete} className="px-4 py-2 font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                            Sí, Eliminar
+                        </button>
+                    </div>
+                </div>
             </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
@@ -164,7 +201,7 @@ const ResourceManagementPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                         <button onClick={() => handleOpenViewModal(resource)} className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">Ver</button>
                                         <button onClick={() => handleOpenEditModal(resource)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">Editar</button>
-                                        <button onClick={() => handleDelete(resource._id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
+                                        <button onClick={() => handleDeleteClick(resource)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Eliminar</button>
                                     </td>
                                 </tr>
                             ))}
