@@ -79,7 +79,7 @@ exports.createReservation = async (req, res) => {
     }
 };
 
-// --- INICIO DE LA MODIFICACIÓN ---
+// --- INICIO DE LA CORRECCIÓN ---
 exports.getActiveReservations = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -98,8 +98,20 @@ exports.getActiveReservations = async (req, res) => {
             .limit(limit)
             .lean();
 
-        const formattedReservations = await Promise.all(reservations.map(async (res) => {
-            // ... (lógica de formato sin cambios)
+        const formattedReservations = await Promise.all(reservations.map(async (doc) => {
+            let itemDetails = { name: 'Detalles no disponibles' };
+            if (doc.itemModel === 'Exemplar') {
+                const exemplar = await Exemplar.findById(doc.item).populate('libroId', 'titulo');
+                if (exemplar && exemplar.libroId) {
+                    itemDetails = { name: `${exemplar.libroId.titulo} (Copia #${exemplar.numeroCopia})` };
+                }
+            } else if (doc.itemModel === 'ResourceInstance') {
+                const instance = await ResourceInstance.findById(doc.item).populate('resourceId', 'nombre');
+                if (instance && instance.resourceId) {
+                    itemDetails = { name: `${instance.resourceId.nombre} (${instance.codigoInterno})` };
+                }
+            }
+            return { ...doc, itemDetails };
         }));
 
         res.json({
@@ -113,7 +125,7 @@ exports.getActiveReservations = async (req, res) => {
         res.status(500).send('Error del servidor');
     }
 };
-// --- FIN DE LA MODIFICACIÓN ---
+// --- FIN DE LA CORRECCIÓN ---
 
 // Confirmar el retiro de una reserva
 exports.confirmReservation = async (req, res) => {
