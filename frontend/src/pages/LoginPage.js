@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../hooks';
 
@@ -6,13 +5,16 @@ const LoginPage = () => {
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  // <-- 1. Obtenemos setShowLogin del contexto de autenticación -->
+  const { login, setShowLogin } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
       await login(correo, password);
+      // No es necesario llamar a setShowLogin(false) aquí, 
+      // porque el AuthProvider se encargará de cambiar la vista al detectar un usuario logueado.
     } catch (err) {
       setError(err.message);
     }
@@ -60,6 +62,18 @@ const LoginPage = () => {
             Acceder
           </button>
         </form>
+
+        {/* <-- 2. AÑADIMOS EL BOTÓN/ENLACE PARA VOLVER --> */}
+        <div className="text-center">
+            <button
+                type="button"
+                onClick={() => setShowLogin(false)}
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors duration-200"
+            >
+                o Volver al Catálogo
+            </button>
+        </div>
+        
       </div>
     </div>
   );
