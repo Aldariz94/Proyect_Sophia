@@ -27,41 +27,72 @@ exports.createBook = async (req, res) => {
     }
 };
 
-// Obtener catálogo de libros con conteo de ejemplares
+// --- INICIO DE LA MODIFICACIÓN ---
+// La función getBooks ahora maneja la paginación
 exports.getBooks = async (req, res) => {
     try {
-        const books = await Book.aggregate([
+        // Obtenemos los parámetros de la consulta (query), con valores por defecto
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Usamos una agregación con $facet para obtener los datos y el conteo total en una sola consulta
+        const results = await Book.aggregate([
             {
-                $lookup: {
-                    // PUNTO CRÍTICO: El nombre de la colección debe ser 'exemplars' (plural, minúscula)
-                    from: 'exemplars',
-                    localField: '_id',
-                    foreignField: 'libroId',
-                    as: 'exemplarsInfo'
-                }
-            },
-            {
-                $addFields: {
-                    totalExemplars: { $size: '$exemplarsInfo' },
-                    availableExemplars: {
-                        $size: {
-                            $filter: {
-                                input: '$exemplarsInfo',
-                                as: 'exemplar',
-                                cond: { $eq: ['$$exemplar.estado', 'disponible'] }
+                $facet: {
+                    // Pipeline para los metadatos (conteo total)
+                    metadata: [{ $count: "total" }],
+                    // Pipeline para los datos de la página actual
+                    data: [
+                        { $sort: { createdAt: -1 } }, // Ordenamos por fecha de creación, los más nuevos primero
+                        { $skip: skip },
+                        { $limit: limit },
+                        {
+                            $lookup: {
+                                from: 'exemplars',
+                                localField: '_id',
+                                foreignField: 'libroId',
+                                as: 'exemplarsInfo'
                             }
-                        }
-                    }
+                        },
+                        {
+                            $addFields: {
+                                totalExemplars: { $size: '$exemplarsInfo' },
+                                availableExemplars: {
+                                    $size: {
+                                        $filter: {
+                                            input: '$exemplarsInfo',
+                                            as: 'exemplar',
+                                            cond: { $eq: ['$$exemplar.estado', 'disponible'] }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        { $project: { exemplarsInfo: 0 } }
+                    ]
                 }
-            },
-            { $project: { exemplarsInfo: 0 } }
+            }
         ]);
-        res.json(books);
+
+        const books = results[0].data;
+        const totalBooks = results[0].metadata[0] ? results[0].metadata[0].total : 0;
+        const totalPages = Math.ceil(totalBooks / limit);
+
+        // Enviamos una respuesta con formato de paginación
+        res.json({
+            docs: books,
+            totalDocs: totalBooks,
+            totalPages,
+            page,
+            limit
+        });
     } catch (err) {
         console.error("Error en getBooks:", err.message);
         res.status(500).send('Error del servidor al obtener libros');
     }
 };
+// --- FIN DE LA MODIFICACIÓN ---
 
 // Obtener detalles de un libro
 exports.getBookDetails = async (req, res) => {

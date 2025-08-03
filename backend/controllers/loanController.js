@@ -105,12 +105,22 @@ exports.returnLoan = async (req, res) => {
     }
 };
 
-// --- INICIO DE LA CORRECCIÓN ---
+// --- INICIO DE LA MODIFICACIÓN ---
 exports.getAllLoans = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const totalLoans = await Loan.countDocuments();
+        const totalPages = Math.ceil(totalLoans / limit);
+
         const loans = await Loan.find()
             .populate('usuarioId', 'primerNombre primerApellido')
-            .lean(); // Nota: quitamos el .sort() de aquí para hacerlo después
+            .sort({ fechaInicio: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
 
         const formattedLoans = await Promise.all(loans.map(async (loan) => {
             let itemDetails = null;
@@ -128,24 +138,26 @@ exports.getAllLoans = async (req, res) => {
             return { ...loan, itemDetails };
         }));
 
-        // Lógica de ordenamiento personalizada
         const statusOrder = { 'atrasado': 1, 'enCurso': 2, 'devuelto': 3 };
         formattedLoans.sort((a, b) => {
-            // Primero, ordena por el estado prioritario
             if (statusOrder[a.estado] !== statusOrder[b.estado]) {
                 return statusOrder[a.estado] - statusOrder[b.estado];
             }
-            // Si los estados son iguales, ordena por la fecha más reciente
             return new Date(b.fechaInicio) - new Date(a.fechaInicio);
         });
 
-        res.json(formattedLoans);
+        res.json({
+            docs: formattedLoans,
+            totalDocs: totalLoans,
+            totalPages,
+            page
+        });
     } catch (err) {
         console.error("Error en getAllLoans:", err.message);
         res.status(500).send('Error del servidor');
     }
 };
-// --- FIN DE LA CORRECCIÓN ---
+// --- FIN DE LA MODIFICACIÓN ---
 
 exports.getLoansByUser = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {

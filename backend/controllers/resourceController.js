@@ -47,39 +47,65 @@ exports.createResource = async (req, res) => {
 
 // --- (El resto de las funciones del controlador no cambian) ---
 
+// --- INICIO DE LA MODIFICACIÓN ---
 exports.getResources = async (req, res) => {
     try {
-        const resources = await ResourceCRA.aggregate([
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const results = await ResourceCRA.aggregate([
             {
-                $lookup: {
-                    from: 'resourceinstances',
-                    localField: '_id',
-                    foreignField: 'resourceId',
-                    as: 'instancesInfo'
-                }
-            },
-            {
-                $addFields: {
-                    totalInstances: { $size: '$instancesInfo' },
-                    availableInstances: {
-                        $size: {
-                            $filter: {
-                                input: '$instancesInfo',
-                                as: 'instance',
-                                cond: { $eq: ['$$instance.estado', 'disponible'] }
+                $facet: {
+                    metadata: [{ $count: "total" }],
+                    data: [
+                        { $sort: { createdAt: -1 } },
+                        { $skip: skip },
+                        { $limit: limit },
+                        {
+                            $lookup: {
+                                from: ResourceInstance.collection.name,
+                                localField: '_id',
+                                foreignField: 'resourceId',
+                                as: 'instancesInfo'
                             }
-                        }
-                    }
+                        },
+                        {
+                            $addFields: {
+                                totalInstances: { $size: '$instancesInfo' },
+                                availableInstances: {
+                                    $size: {
+                                        $filter: {
+                                            input: '$instancesInfo',
+                                            as: 'instance',
+                                            cond: { $eq: ['$$instance.estado', 'disponible'] }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        { $project: { instancesInfo: 0 } }
+                    ]
                 }
-            },
-            { $project: { instancesInfo: 0 } }
+            }
         ]);
-        res.json(resources);
+
+        const resources = results[0].data;
+        const totalResources = results[0].metadata[0] ? results[0].metadata[0].total : 0;
+        const totalPages = Math.ceil(totalResources / limit);
+
+        res.json({
+            docs: resources,
+            totalDocs: totalResources,
+            totalPages,
+            page
+        });
     } catch (err) {
         console.error("Error en getResources:", err.message);
         res.status(500).send('Error del servidor al obtener recursos');
     }
 };
+// --- FIN DE LA MODIFICACIÓN ---
 
 exports.updateResource = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
