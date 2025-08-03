@@ -2,7 +2,6 @@ const Book = require('../models/Book');
 const Exemplar = require('../models/Exemplar');
 const mongoose = require('mongoose');
 
-// Crear un nuevo libro y sus ejemplares
 exports.createBook = async (req, res) => {
     const { libroData, cantidadEjemplares } = req.body;
     try {
@@ -27,24 +26,33 @@ exports.createBook = async (req, res) => {
     }
 };
 
-// --- INICIO DE LA MODIFICACIÓN ---
-// La función getBooks ahora maneja la paginación
 exports.getBooks = async (req, res) => {
     try {
-        // Obtenemos los parámetros de la consulta (query), con valores por defecto
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const search = req.query.search || '';
 
-        // Usamos una agregación con $facet para obtener los datos y el conteo total en una sola consulta
+        let query = {};
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            query = {
+                $or: [
+                    { titulo: searchRegex },
+                    { autor: searchRegex },
+                    { editorial: searchRegex },
+                    { sede: searchRegex }
+                ]
+            };
+        }
+
         const results = await Book.aggregate([
+            { $match: query },
             {
                 $facet: {
-                    // Pipeline para los metadatos (conteo total)
                     metadata: [{ $count: "total" }],
-                    // Pipeline para los datos de la página actual
                     data: [
-                        { $sort: { createdAt: -1 } }, // Ordenamos por fecha de creación, los más nuevos primero
+                        { $sort: { createdAt: -1 } },
                         { $skip: skip },
                         { $limit: limit },
                         {
@@ -79,28 +87,22 @@ exports.getBooks = async (req, res) => {
         const totalBooks = results[0].metadata[0] ? results[0].metadata[0].total : 0;
         const totalPages = Math.ceil(totalBooks / limit);
 
-        // Enviamos una respuesta con formato de paginación
         res.json({
             docs: books,
             totalDocs: totalBooks,
             totalPages,
-            page,
-            limit
+            page
         });
     } catch (err) {
         console.error("Error en getBooks:", err.message);
         res.status(500).send('Error del servidor al obtener libros');
     }
 };
-// --- FIN DE LA MODIFICACIÓN ---
 
-// Obtener detalles de un libro
 exports.getBookDetails = async (req, res) => {
-
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ msg: 'ID de libro no válido.' });
     }
-
     try {
         const book = await Book.findById(req.params.id);
         if (!book) {
@@ -114,13 +116,10 @@ exports.getBookDetails = async (req, res) => {
     }
 };
 
-// Actualizar un libro
 exports.updateBook = async (req, res) => {
-
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ msg: 'ID de libro no válido.' });
     }
-
     try {
         const book = await Book.findByIdAndUpdate(
             req.params.id,
@@ -135,13 +134,10 @@ exports.updateBook = async (req, res) => {
     }
 };
 
-// Eliminar un libro
 exports.deleteBook = async (req, res) => {
-
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ msg: 'ID de libro no válido.' });
     }
-    
     try {
         const book = await Book.findById(req.params.id);
         if (!book) return res.status(404).json({ msg: 'Libro no encontrado.' });
@@ -154,13 +150,10 @@ exports.deleteBook = async (req, res) => {
     }
 };
 
-// Añadir nuevos ejemplares a un libro existente
 exports.addExemplars = async (req, res) => {
-
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ msg: 'ID de libro no válido.' });
     }
-
     const { quantity } = req.body;
     try {
         const lastExemplar = await Exemplar.findOne({ libroId: req.params.id }).sort({ numeroCopia: -1 });
@@ -182,13 +175,10 @@ exports.addExemplars = async (req, res) => {
     }
 };
 
-// Obtener todos los ejemplares de un libro
 exports.getExemplarsForBook = async (req, res) => {
-
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         return res.status(400).json({ msg: 'ID de libro no válido.' });
     }
-
     try {
         const exemplars = await Exemplar.find({ libroId: req.params.id }).sort({ numeroCopia: 'asc' });
         res.json(exemplars);
@@ -198,13 +188,9 @@ exports.getExemplarsForBook = async (req, res) => {
     }
 };
 
-// Actualizar el estado de un ejemplar específico
-// --- FUNCIÓN MODIFICADA ---
 exports.updateExemplarStatus = async (req, res) => {
     const { estado } = req.body;
     const { exemplarId } = req.params;
-
-    // --- VALIDACIÓN ---
     const allowedStatus = ['disponible', 'prestado', 'reservado', 'deteriorado', 'extraviado'];
     if (!estado || !allowedStatus.includes(estado)) {
         return res.status(400).json({ msg: 'Estado no válido.' });
@@ -212,7 +198,6 @@ exports.updateExemplarStatus = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(exemplarId)) {
         return res.status(400).json({ msg: 'ID de ejemplar no válido.' });
     }
-
     try {
         const exemplar = await Exemplar.findByIdAndUpdate(
             exemplarId,
