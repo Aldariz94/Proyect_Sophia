@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Modal, UserForm, UserDetails, ImportComponent, Notification } from '../components';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -120,13 +120,13 @@ const UserManagementPage = () => {
         }
     };
     
-    return (
+return (
         <div>
             <Notification {...notification} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Gestión de Usuarios</h1>
                 <div className="flex items-center gap-4">
-                    <input type="text" placeholder="Buscar por nombre, RUT, correo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
+                    <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
                     <button onClick={() => setIsImportModalOpen(true)} className="flex items-center px-4 py-2 font-medium text-white bg-green-600 rounded-md hover:bg-green-700 whitespace-nowrap">
                         <ArrowUpTrayIcon className="w-5 h-5 mr-2" />
                         Importar
@@ -151,7 +151,7 @@ const UserManagementPage = () => {
                     importType="users" 
                     onImportSuccess={(successMessage) => {
                         setIsImportModalOpen(false);
-                        fetchUsers(1, ''); // Al importar, volvemos a la página 1 sin búsqueda
+                        fetchUsers(1, '');
                         showNotification(successMessage);
                     }} 
                 />

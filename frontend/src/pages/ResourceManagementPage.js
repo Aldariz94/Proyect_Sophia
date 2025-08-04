@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { Modal, ResourceForm, ResourceDetails, ImportComponent, Notification } from '../components';
 import { ArrowUpTrayIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -143,7 +143,43 @@ const ResourceManagementPage = () => {
                 </div>
             </div>
 
-            {/* ... (Modales sin cambios) ... */}
+            <Modal isOpen={isFormModalOpen} onClose={handleCloseModals} title={editingResource ? "Editar Recurso" : "Crear Nuevo Recurso"}>
+                <ResourceForm onSubmit={handleSubmit} onCancel={handleCloseModals} initialData={editingResource} />
+            </Modal>
+
+            <Modal isOpen={isViewModalOpen} onClose={handleCloseModals} title="Detalles del Recurso">
+                <ResourceDetails resource={viewingResource} />
+            </Modal>
+
+            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Importar Recursos desde Excel">
+                <ImportComponent 
+                    importType="resources" 
+                    onImportSuccess={(successMessage) => {
+                        setIsImportModalOpen(false);
+                        fetchResources(1, '');
+                        showNotification(successMessage);
+                    }} 
+                />
+            </Modal>
+            
+            <Modal isOpen={isDeleteModalOpen} onClose={handleCloseModals} title="Confirmar Eliminación">
+                <div className="space-y-4">
+                    <p className="dark:text-gray-300">
+                        ¿Estás seguro de que deseas eliminar el recurso <strong className="dark:text-white">"{deletingResource?.nombre}"</strong>?
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-400">
+                        Esta acción es irreversible y eliminará también todas sus instancias.
+                    </p>
+                    <div className="flex justify-end pt-4 space-x-2">
+                        <button type="button" onClick={handleCloseModals} className="px-4 py-2 font-medium text-gray-600 bg-gray-200 rounded-md dark:bg-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500">
+                            Cancelar
+                        </button>
+                        <button type="button" onClick={executeDelete} className="px-4 py-2 font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                            Sí, Eliminar
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
             <div className="mt-6 overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
                 {loading ? (
