@@ -39,7 +39,7 @@ const UserSidebar = ({ onNavigate, currentPage, onCloseRequest }) => {
     };
 
     return (
-        <div className="flex flex-col w-64 h-screen px-4 py-8 bg-white border-r dark:bg-gray-800 dark:border-gray-700">
+        <div className="sticky top-0 self-start flex flex-col w-64 h-screen px-4 py-8 bg-white border-r dark:bg-gray-800 dark:border-gray-700 overflow-y-auto">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold text-center text-gray-800 dark:text-white">Proyect Sophia</h2>
                 {onCloseRequest && (
@@ -62,7 +62,6 @@ const UserSidebar = ({ onNavigate, currentPage, onCloseRequest }) => {
                 <p className="mx-2 mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">{user ? user.correo : ''}</p>
             </div>
             <nav className="flex-grow mt-6">
-                {/* 3. El map ahora itera sobre la lista ya filtrada */}
                 {navItems.map((item) => {
                     const IconComponent = item.icon;
                     return (

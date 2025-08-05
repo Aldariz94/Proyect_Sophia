@@ -52,7 +52,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-      <div className="hidden md:block">
+      <div className="hidden md:flex">
         <Sidebar onNavigate={handleNavigate} currentPage={currentPage} />
       </div>
 
@@ -67,8 +67,8 @@ const DashboardLayout = () => {
         />
       </MobileSidebar>
 
-      <div className="flex flex-col flex-1">
-        <header className="md:hidden p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+      <div className="flex flex-col flex-1 overflow-x-hidden">
+        <header className="md:hidden p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
           <button onClick={() => setIsMobileMenuOpen(true)}>
             <Bars3Icon className="w-6 h-6 text-gray-800 dark:text-white" />
           </button>
