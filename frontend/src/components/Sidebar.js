@@ -15,7 +15,6 @@ import {
     ArrowLeftStartOnRectangleIcon,
     SunIcon,
     MoonIcon,
-    XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ onNavigate, currentPage, onCloseRequest  }) => {

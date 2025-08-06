@@ -10,7 +10,6 @@ import {
     ArrowLeftStartOnRectangleIcon,
     SunIcon,
     MoonIcon,
-    XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const UserSidebar = ({ onNavigate, currentPage, onCloseRequest }) => {
