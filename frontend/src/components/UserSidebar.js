@@ -42,14 +42,6 @@ const UserSidebar = ({ onNavigate, currentPage, onCloseRequest }) => {
         <div className="sticky top-0 self-start flex flex-col w-64 h-dvh px-4 py-8 bg-white border-r dark:bg-gray-800 dark:border-gray-700 overflow-y-auto">
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold text-center text-gray-800 dark:text-white">Proyect Sophia</h2>
-                {onCloseRequest && (
-                    <button 
-                      onClick={onCloseRequest} 
-                      className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white md:hidden"
-                    >
-                      <XMarkIcon className="w-6 h-6" />
-                    </button>
-                )}
             </div>
             
             <div className="flex flex-col items-center mt-6 -mx-2">
