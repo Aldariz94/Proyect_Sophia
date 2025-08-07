@@ -47,7 +47,7 @@ const UserLayout = () => {
       </MobileSidebar>
       
       <div className="flex flex-col flex-1 overflow-x-hidden">
-        <header className="md:hidden p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
+        <header className="md:hidden p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
           <button onClick={() => setIsMobileMenuOpen(true)}>
             <Bars3Icon className="w-6 h-6 text-gray-800 dark:text-white" />
           </button>
