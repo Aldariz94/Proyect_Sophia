@@ -38,4 +38,20 @@
         @apply bg-gray-600 hover:bg-gray-700 focus:ring-gray-500 text-white
                dark:bg-gray-200 dark:hover:bg-gray-300 dark:text-gray-800 dark:focus:ring-gray-400;
     }
+
+
+        /* --- INICIO DE LA MODIFICACIÓN --- */
+    /* Nueva clase para tablas que se adaptan */
+    .responsive-table th, .responsive-table td {
+        @apply px-2 py-3 text-sm whitespace-nowrap; /* Estilo base para MÓVIL (compacto) */
+    }
+
+    @screen md {
+        /* Estilo para TABLETS y ESCRITORIO (más espaciado) */
+        .responsive-table th, .responsive-table td {
+            @apply px-6 py-4;
+        }
+    }
+    /* --- FIN DE LA MODIFICACIÓN --- */
+    
 }

@@ -54,7 +54,7 @@ const SanctionsPage = () => {
                 {loading ? (
                     <div className="p-6 text-center dark:text-gray-300">Cargando usuarios sancionados...</div>
                 ) : (
-                    <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                    <table className="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700 responsive-table">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Nombre</th>
