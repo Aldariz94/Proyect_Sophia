@@ -74,7 +74,7 @@ const DashboardLayout = () => {
           </button>
         </header>
 
-        <main className="flex-1 p-4 sm:p-10">{renderPage()}</main>
+        <main className="flex-1 p-4 sm:p-10 animate-fadeIn">{renderPage()}</main>
         <Footer />
       </div>
     </div>
